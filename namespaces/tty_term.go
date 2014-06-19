@@ -37,6 +37,10 @@ func (t *TtyTerminal) Attach(command *exec.Cmd) error {
 	return err
 }
 
+func (t *TtyTerminal) GetFds() (*[3]uintptr, error) {
+	return nil, nil
+}
+
 // SetupWindow gets the parent window size and sets the master
 // pty to the current size and set the parents mode to RAW
 func (t *TtyTerminal) setupWindow(master, parent *os.File) (*term.State, error) {

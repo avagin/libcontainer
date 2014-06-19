@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
+	"fmt"
 
 	"github.com/docker/libcontainer"
 	"github.com/docker/libcontainer/cgroups"
@@ -13,6 +14,7 @@ import (
 	"github.com/docker/libcontainer/cgroups/systemd"
 	"github.com/docker/libcontainer/network"
 	"github.com/dotcloud/docker/pkg/system"
+	libct "github.com/avagin/libct/go"
 )
 
 // Exec performes setup outside of a namespace so that a container can be
@@ -22,11 +24,23 @@ func Exec(container *libcontainer.Container, term Terminal, rootfs, dataPath str
 		master  *os.File
 		console string
 		err     error
+		fds	*[3]uintptr
 	)
 
 	// create a pipe so that we can syncronize with the namespaced process and
 	// pass the veth name to the child
 	syncPipe, err := NewSyncPipe()
+	if err != nil {
+		return -1, err
+	}
+
+	s := &libct.Session{}
+	err = s.OpenLocal()
+	if  err != nil {
+		return -1, err
+	}
+
+	ct, err := s.ContainerCreate("docker")
 	if err != nil {
 		return -1, err
 	}
@@ -37,47 +51,77 @@ func Exec(container *libcontainer.Container, term Terminal, rootfs, dataPath str
 			return -1, err
 		}
 		term.SetMaster(master)
+		ttyfd, err := os.OpenFile(console, os.O_RDWR, 0);
+		if err != nil {
+			return -1, err
+		}
+		term.Attach(nil)
+		fds = &[3]uintptr{ttyfd.Fd(), ttyfd.Fd(), ttyfd.Fd()}
+
+		err = ct.SetConsoleFd(ttyfd)
+		if err != nil {
+			return -1, err
+		}
+	} else {
+		fds, err = term.GetFds()
 	}
 
-	command := createCommand(container, console, rootfs, dataPath, os.Args[0], syncPipe.child, args)
-
-	if err := term.Attach(command); err != nil {
-		return -1, err
-	}
 	defer term.Close()
 
-	if err := command.Start(); err != nil {
-		return -1, err
+
+//	command := createCommand(container, console, rootfs, dataPath, os.Args[0], syncPipe.child, args)
+//
+//	if err := term.Attach(command); err != nil {
+//		return -1, err
+//	}
+//	defer term.Close()
+//
+//	if err := command.Start(); err != nil {
+//		return -1, err
+//	}
+
+	ct.SetNsMask(uint64(GetNamespaceFlags(container.Namespaces)))
+
+	syscall.RawSyscall(syscall.SYS_FCNTL, syncPipe.child.Fd(), syscall.F_SETFD, 0)
+	env := []string{
+		"console=" + console,
+		"pipe=" + fmt.Sprintf("%d", syncPipe.child.Fd()),
+		"data_path=" + dataPath,
 	}
 
-	started, err := system.GetProcessStartTime(command.Process.Pid)
+	err = ct.SpawnExecve(os.Args[0], append([]string{os.Args[0], "init"}, args...), env, fds)
 	if err != nil {
 		return -1, err
 	}
-	if err := WritePid(dataPath, command.Process.Pid, started); err != nil {
-		command.Process.Kill()
-		command.Wait()
-		return -1, err
-	}
-	defer DeletePid(dataPath)
 
-	// Do this before syncing with child so that no children
-	// can escape the cgroup
-	cleaner, err := SetupCgroups(container, command.Process.Pid)
-	if err != nil {
-		command.Process.Kill()
-		command.Wait()
-		return -1, err
-	}
-	if cleaner != nil {
-		defer cleaner.Cleanup()
-	}
-
-	if err := InitializeNetworking(container, command.Process.Pid, syncPipe); err != nil {
-		command.Process.Kill()
-		command.Wait()
-		return -1, err
-	}
+//	started, err := system.GetProcessStartTime(command.Process.Pid)
+//	if err != nil {
+//		return -1, err
+//	}
+//	if err := WritePid(dataPath, command.Process.Pid, started); err != nil {
+//		command.Process.Kill()
+//		command.Wait()
+//		return -1, err
+//	}
+//	defer DeletePid(dataPath)
+//
+//	// Do this before syncing with child so that no children
+//	// can escape the cgroup
+//	cleaner, err := SetupCgroups(container, command.Process.Pid)
+//	if err != nil {
+//		command.Process.Kill()
+//		command.Wait()
+//		return -1, err
+//	}
+//	if cleaner != nil {
+//		defer cleaner.Cleanup()
+//	}
+//
+//	if err := InitializeNetworking(container, command.Process.Pid, syncPipe); err != nil {
+//		command.Process.Kill()
+//		command.Wait()
+//		return -1, err
+//	}
 
 	// Sync with child
 	syncPipe.Close()
@@ -86,12 +130,15 @@ func Exec(container *libcontainer.Container, term Terminal, rootfs, dataPath str
 		startCallback()
 	}
 
-	if err := command.Wait(); err != nil {
-		if _, ok := err.(*exec.ExitError); !ok {
-			return -1, err
-		}
-	}
-	return command.ProcessState.Sys().(syscall.WaitStatus).ExitStatus(), nil
+	ct.Wait()
+
+//	if err := command.Wait(); err != nil {
+//		if _, ok := err.(*exec.ExitError); !ok {
+//			return -1, err
+//		}
+//	}
+//	return command.ProcessState.Sys().(syscall.WaitStatus).ExitStatus(), nil
+	return 0, nil
 }
 
 // DefaultCreateCommand will return an exec.Cmd with the Cloneflags set to the proper namespaces

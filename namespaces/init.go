@@ -50,14 +50,14 @@ func Init(container *libcontainer.Container, uncleanRootfs, consolePath string, 
 			return err
 		}
 	}
-	if _, err := system.Setsid(); err != nil {
-		return fmt.Errorf("setsid %s", err)
-	}
-	if consolePath != "" {
-		if err := system.Setctty(); err != nil {
-			return fmt.Errorf("setctty %s", err)
-		}
-	}
+//	if _, err := system.Setsid(); err != nil {
+//		return fmt.Errorf("setsid %s", err)
+//	}
+//	if consolePath != "" {
+//		if err := system.Setctty(); err != nil {
+//			return fmt.Errorf("setctty %s", err)
+//		}
+//	}
 	if err := setupNetwork(container, context); err != nil {
 		return fmt.Errorf("setup networking %s", err)
 	}

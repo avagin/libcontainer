@@ -11,6 +11,7 @@ type Terminal interface {
 	SetMaster(*os.File)
 	Attach(*exec.Cmd) error
 	Resize(h, w int) error
+	GetFds() (*[3]uintptr, error)
 }
 
 func NewTerminal(stdin io.Reader, stdout, stderr io.Writer, tty bool) Terminal {
