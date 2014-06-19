@@ -80,7 +80,17 @@ func Exec(container *libcontainer.Container, term Terminal, rootfs, dataPath str
 //		return -1, err
 //	}
 
-	ct.SetNsMask(uint64(GetNamespaceFlags(container.Namespaces)))
+	err = ct.SetNsMask(uint64(GetNamespaceFlags(container.Namespaces)))
+	if err != nil {
+		return -1, err
+	}
+
+	if  container.Hostname != "" {
+		err = ct.Uname(&container.Hostname, nil)
+		if err != nil {
+			return -1, err
+		}
+	}
 
 	syscall.RawSyscall(syscall.SYS_FCNTL, syncPipe.child.Fd(), syscall.F_SETFD, 0)
 	env := []string{
