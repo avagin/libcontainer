@@ -4,17 +4,18 @@ package console
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+//	"os"
+//	"path/filepath"
 	"syscall"
 
-	"github.com/docker/libcontainer/label"
+//	"github.com/docker/libcontainer/label"
 	"github.com/dotcloud/docker/pkg/system"
+	libct "github.com/avagin/libct/go"
 )
 
 // Setup initializes the proper /dev/console inside the rootfs path
-func Setup(rootfs, consolePath, mountLabel string) error {
-	oldMask := system.Umask(0000)
+func Setup(ct *libct.Container, rootfs, consolePath, mountLabel string) error {
+/*	oldMask := system.Umask(0000)
 	defer system.Umask(oldMask)
 
 	if err := os.Chmod(consolePath, 0600); err != nil {
@@ -38,6 +39,12 @@ func Setup(rootfs, consolePath, mountLabel string) error {
 	}
 
 	if err := system.Mount(consolePath, dest, "bind", syscall.MS_BIND, ""); err != nil {
+		return fmt.Errorf("bind %s to %s %s", consolePath, dest, err)
+	}
+*/
+	dest := "/dev/console"
+
+	if err := ct.AddMount(consolePath, dest, 0); err != nil {
 		return fmt.Errorf("bind %s to %s %s", consolePath, dest, err)
 	}
 	return nil

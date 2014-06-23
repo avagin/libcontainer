@@ -59,10 +59,12 @@ func InitializeMountNamespace(ct *libct.Container, rootfs, console string, conta
 /*	if err := nodes.CreateDeviceNodes(rootfs, container.DeviceNodes); err != nil {
 		return fmt.Errorf("create device nodes %s", err)
 	}
-	if err := SetupPtmx(rootfs, console, container.Context["mount_label"]); err != nil {
+*/
+	fmt.Println(console);
+	if err := SetupPtmx(ct, rootfs, console, container.Context["mount_label"]); err != nil {
 		return err
 	}
-	if err := setupDevSymlinks(rootfs); err != nil {
+/*	if err := setupDevSymlinks(rootfs); err != nil {
 		return fmt.Errorf("dev symlinks %s", err)
 	}
 	if err := system.Chdir(rootfs); err != nil {

@@ -51,12 +51,12 @@ func Exec(container *libcontainer.Container, term Terminal, rootfs, dataPath str
 		return -1, err
 	}
 
-	rootfs, err = utils.ResolveRootfs(rootfs)
+	err = ct.SetOption(libct.LIBCT_OPT_AUTO_PROC_MOUNT)
 	if err != nil {
 		return -1, err
 	}
 
-	err = mount.InitializeMountNamespace(ct, rootfs, console, container);
+	rootfs, err = utils.ResolveRootfs(rootfs)
 	if err != nil {
 		return -1, err
 	}
@@ -83,6 +83,11 @@ func Exec(container *libcontainer.Container, term Terminal, rootfs, dataPath str
 	}
 
 	defer term.Close()
+
+	err = mount.InitializeMountNamespace(ct, rootfs, console, container);
+	if err != nil {
+		return -1, err
+	}
 
 
 //	command := createCommand(container, console, rootfs, dataPath, os.Args[0], syncPipe.child, args)
