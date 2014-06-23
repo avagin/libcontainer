@@ -11,9 +11,9 @@ import (
 
 	"github.com/docker/libcontainer"
 	"github.com/docker/libcontainer/apparmor"
-	"github.com/docker/libcontainer/console"
+//	"github.com/docker/libcontainer/console"
 	"github.com/docker/libcontainer/label"
-	"github.com/docker/libcontainer/mount"
+//	"github.com/docker/libcontainer/mount"
 	"github.com/docker/libcontainer/netlink"
 	"github.com/docker/libcontainer/network"
 	"github.com/docker/libcontainer/security/capabilities"
@@ -26,10 +26,10 @@ import (
 // Init is the init process that first runs inside a new namespace to setup mounts, users, networking,
 // and other options required for the new container.
 func Init(container *libcontainer.Container, uncleanRootfs, consolePath string, syncPipe *SyncPipe, args []string) error {
-	rootfs, err := utils.ResolveRootfs(uncleanRootfs)
-	if err != nil {
-		return err
-	}
+//	rootfs, err := utils.ResolveRootfs(uncleanRootfs)
+//	if err != nil {
+//		return err
+//	}
 
 	// clear the current processes env and replace it with the environment
 	// defined on the container
@@ -45,11 +45,11 @@ func Init(container *libcontainer.Container, uncleanRootfs, consolePath string, 
 	}
 	syncPipe.Close()
 
-	if consolePath != "" {
-		if err := console.OpenAndDup(consolePath); err != nil {
-			return err
-		}
-	}
+//	if consolePath != "" {
+//		if err := console.OpenAndDup(consolePath); err != nil {
+//			return err
+//		}
+//	}
 //	if _, err := system.Setsid(); err != nil {
 //		return fmt.Errorf("setsid %s", err)
 //	}
@@ -67,9 +67,9 @@ func Init(container *libcontainer.Container, uncleanRootfs, consolePath string, 
 
 	label.Init()
 
-	if err := mount.InitializeMountNamespace(rootfs, consolePath, container); err != nil {
-		return fmt.Errorf("setup mount namespace %s", err)
-	}
+//	if err := mount.InitializeMountNamespace(rootfs, consolePath, container); err != nil {
+//		return fmt.Errorf("setup mount namespace %s", err)
+//	}
 
 	runtime.LockOSThread()
 

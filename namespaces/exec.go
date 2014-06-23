@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
-	"fmt"
 
 	"github.com/docker/libcontainer"
 	"github.com/docker/libcontainer/cgroups"
@@ -14,6 +13,8 @@ import (
 	"github.com/docker/libcontainer/cgroups/systemd"
 	"github.com/docker/libcontainer/network"
 	"github.com/dotcloud/docker/pkg/system"
+	"github.com/docker/libcontainer/utils"
+	"github.com/docker/libcontainer/mount"
 	libct "github.com/avagin/libct/go"
 )
 
@@ -29,10 +30,10 @@ func Exec(container *libcontainer.Container, term Terminal, rootfs, dataPath str
 
 	// create a pipe so that we can syncronize with the namespaced process and
 	// pass the veth name to the child
-	syncPipe, err := NewSyncPipe()
-	if err != nil {
-		return -1, err
-	}
+//	syncPipe, err := NewSyncPipe()
+//	if err != nil {
+//		return -1, err
+//	}
 
 	s := &libct.Session{}
 	err = s.OpenLocal()
@@ -41,6 +42,21 @@ func Exec(container *libcontainer.Container, term Terminal, rootfs, dataPath str
 	}
 
 	ct, err := s.ContainerCreate("docker")
+	if err != nil {
+		return -1, err
+	}
+
+	err = ct.SetNsMask(uint64(GetNamespaceFlags(container.Namespaces)))
+	if err != nil {
+		return -1, err
+	}
+
+	rootfs, err = utils.ResolveRootfs(rootfs)
+	if err != nil {
+		return -1, err
+	}
+
+	err = mount.InitializeMountNamespace(ct, rootfs, console, container);
 	if err != nil {
 		return -1, err
 	}
@@ -80,11 +96,6 @@ func Exec(container *libcontainer.Container, term Terminal, rootfs, dataPath str
 //		return -1, err
 //	}
 
-	err = ct.SetNsMask(uint64(GetNamespaceFlags(container.Namespaces)))
-	if err != nil {
-		return -1, err
-	}
-
 	if  container.Hostname != "" {
 		err = ct.Uname(&container.Hostname, nil)
 		if err != nil {
@@ -92,18 +103,23 @@ func Exec(container *libcontainer.Container, term Terminal, rootfs, dataPath str
 		}
 	}
 
-	syscall.RawSyscall(syscall.SYS_FCNTL, syncPipe.child.Fd(), syscall.F_SETFD, 0)
-	env := []string{
-		"console=" + console,
-		"pipe=" + fmt.Sprintf("%d", syncPipe.child.Fd()),
-		"data_path=" + dataPath,
-	}
-
-	err = ct.SpawnExecve(os.Args[0], append([]string{os.Args[0], "init"}, args...), env, fds)
+//	syscall.RawSyscall(syscall.SYS_FCNTL, syncPipe.child.Fd(), syscall.F_SETFD, 0)
+//	env := []string{
+//		"console=" + console,
+//		"pipe=" + fmt.Sprintf("%d", syncPipe.child.Fd()),
+//		"data_path=" + dataPath,
+//	}
+//
+//	err = ct.AddMount(os.Args[0], "./nsinit", 0)
+//	if err != nil {
+//		return -1, err
+//	}
+//
+	err = ct.SpawnExecve(args[0], args, container.Env, fds)
 	if err != nil {
 		return -1, err
 	}
-
+//
 //	started, err := system.GetProcessStartTime(command.Process.Pid)
 //	if err != nil {
 //		return -1, err
@@ -134,7 +150,7 @@ func Exec(container *libcontainer.Container, term Terminal, rootfs, dataPath str
 //	}
 
 	// Sync with child
-	syncPipe.Close()
+//	syncPipe.Close()
 
 	if startCallback != nil {
 		startCallback()

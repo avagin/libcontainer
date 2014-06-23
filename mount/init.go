@@ -12,9 +12,10 @@ import (
 	"github.com/docker/libcontainer"
 	"github.com/docker/libcontainer/cgroups"
 	"github.com/docker/libcontainer/label"
-	"github.com/docker/libcontainer/mount/nodes"
+//	"github.com/docker/libcontainer/mount/nodes"
 	"github.com/dotcloud/docker/pkg/symlink"
 	"github.com/dotcloud/docker/pkg/system"
+	libct "github.com/avagin/libct/go"
 )
 
 // default mount point flags
@@ -30,27 +31,32 @@ type mount struct {
 
 // InitializeMountNamespace setups up the devices, mount points, and filesystems for use inside a
 // new mount namepsace
-func InitializeMountNamespace(rootfs, console string, container *libcontainer.Container) error {
+func InitializeMountNamespace(ct *libct.Container, rootfs, console string, container *libcontainer.Container) error {
 	var (
 		err  error
-		flag = syscall.MS_PRIVATE
+//		flag = syscall.MS_PRIVATE
 	)
-	if container.NoPivotRoot {
-		flag = syscall.MS_SLAVE
-	}
-	if err := system.Mount("", "/", "", uintptr(flag|syscall.MS_REC), ""); err != nil {
-		return fmt.Errorf("mounting / with flags %X %s", (flag | syscall.MS_REC), err)
-	}
-	if err := system.Mount(rootfs, rootfs, "bind", syscall.MS_BIND|syscall.MS_REC, ""); err != nil {
-		return fmt.Errorf("mouting %s as bind %s", rootfs, err)
-	}
-	if err := mountSystem(rootfs, container); err != nil {
+//	if container.NoPivotRoot {
+//		flag = syscall.MS_SLAVE
+//	}
+//	if err := system.Mount("", "/", "", uintptr(flag|syscall.MS_REC), ""); err != nil {
+//		return fmt.Errorf("mounting / with flags %X %s", (flag | syscall.MS_REC), err)
+//	}
+//	if err := system.Mount(rootfs, rootfs, "bind", syscall.MS_BIND|syscall.MS_REC, ""); err != nil {
+//		return fmt.Errorf("mouting %s as bind %s", rootfs, err)
+//	}
+//	if err := mountSystem(rootfs, container); err != nil {
+//		return fmt.Errorf("mount system %s", err)
+//	}
+
+	if err = ct.SetRoot(rootfs); err != nil {
 		return fmt.Errorf("mount system %s", err)
 	}
-	if err := setupBindmounts(rootfs, container.Mounts); err != nil {
+
+	if err := setupBindmounts(ct, rootfs, container.Mounts); err != nil {
 		return fmt.Errorf("bind mounts %s", err)
 	}
-	if err := nodes.CreateDeviceNodes(rootfs, container.DeviceNodes); err != nil {
+/*	if err := nodes.CreateDeviceNodes(rootfs, container.DeviceNodes); err != nil {
 		return fmt.Errorf("create device nodes %s", err)
 	}
 	if err := SetupPtmx(rootfs, console, container.Context["mount_label"]); err != nil {
@@ -79,7 +85,7 @@ func InitializeMountNamespace(rootfs, console string, container *libcontainer.Co
 	}
 
 	system.Umask(0022)
-
+*/
 	return nil
 }
 
@@ -210,7 +216,7 @@ func setupDevSymlinks(rootfs string) error {
 	return nil
 }
 
-func setupBindmounts(rootfs string, bindMounts libcontainer.Mounts) error {
+func setupBindmounts(ct *libct.Container, rootfs string, bindMounts libcontainer.Mounts) error {
 	for _, m := range bindMounts.OfType("bind") {
 		var (
 			flags = syscall.MS_BIND | syscall.MS_REC
