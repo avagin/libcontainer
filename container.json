@@ -53,6 +53,13 @@
     {
       "type": "devtmpfs"
     }
+    {
+      "type": "bind",
+      "Writable":false,
+      "Source":"/mnt",
+      "Destination":"/mnt",
+      "Private":true,
+    }
   ],
   "device_nodes": [
 		{

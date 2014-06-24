@@ -13,7 +13,7 @@ import (
 	"github.com/docker/libcontainer/cgroups"
 	"github.com/docker/libcontainer/label"
 	"github.com/docker/libcontainer/mount/nodes"
-	"github.com/dotcloud/docker/pkg/symlink"
+//	"github.com/dotcloud/docker/pkg/symlink"
 	"github.com/dotcloud/docker/pkg/system"
 	libct "github.com/avagin/libct/go"
 )
@@ -220,6 +220,20 @@ func setupDevSymlinks(rootfs string) error {
 
 func setupBindmounts(ct *libct.Container, rootfs string, bindMounts libcontainer.Mounts) error {
 	for _, m := range bindMounts.OfType("bind") {
+		var flags int;
+
+		if !m.Writable {
+			flags |= libct.CT_FS_RDONLY
+		}
+
+		if m.Private {
+			flags |= libct.CT_FS_PRIVATE;
+		}
+
+		if err := ct.AddMount(m.Source, m.Destination, flags); err != nil {
+			return err
+		}
+/*
 		var (
 			flags = syscall.MS_BIND | syscall.MS_REC
 			dest  = filepath.Join(rootfs, m.Destination)
@@ -255,6 +269,7 @@ func setupBindmounts(ct *libct.Container, rootfs string, bindMounts libcontainer
 				return fmt.Errorf("mounting %s private %s", dest, err)
 			}
 		}
+*/
 	}
 	return nil
 }
