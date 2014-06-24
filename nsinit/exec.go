@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"os/signal"
+//	"os/signal"
 
 	"github.com/codegangsta/cli"
 	"github.com/docker/libcontainer"
@@ -51,10 +51,10 @@ func execAction(context *cli.Context) {
 func startContainer(container *libcontainer.Container, term namespaces.Terminal, dataPath string, args []string) (int, error) {
 	var (
 		cmd  *exec.Cmd
-		sigc = make(chan os.Signal, 10)
+//		sigc = make(chan os.Signal, 10)
 	)
 
-	signal.Notify(sigc)
+//	signal.Notify(sigc)
 
 	createCommand := func(container *libcontainer.Container, console, rootfs, dataPath, init string, pipe *os.File, args []string) *exec.Cmd {
 		cmd = namespaces.DefaultCreateCommand(container, console, rootfs, dataPath, init, pipe, args)
@@ -65,11 +65,11 @@ func startContainer(container *libcontainer.Container, term namespaces.Terminal,
 	}
 
 	startCallback := func() {
-		go func() {
-			for sig := range sigc {
-				cmd.Process.Signal(sig)
-			}
-		}()
+//		go func() {
+//			for sig := range sigc {
+//				cmd.Process.Signal(sig)
+//			}
+//		}()
 	}
 
 	return namespaces.Exec(container, term, "", dataPath, args, createCommand, startCallback)
