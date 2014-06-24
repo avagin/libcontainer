@@ -12,7 +12,7 @@ import (
 	"github.com/docker/libcontainer"
 	"github.com/docker/libcontainer/cgroups"
 	"github.com/docker/libcontainer/label"
-//	"github.com/docker/libcontainer/mount/nodes"
+	"github.com/docker/libcontainer/mount/nodes"
 	"github.com/dotcloud/docker/pkg/symlink"
 	"github.com/dotcloud/docker/pkg/system"
 	libct "github.com/avagin/libct/go"
@@ -56,10 +56,10 @@ func InitializeMountNamespace(ct *libct.Container, rootfs, console string, conta
 	if err := setupBindmounts(ct, rootfs, container.Mounts); err != nil {
 		return fmt.Errorf("bind mounts %s", err)
 	}
-/*	if err := nodes.CreateDeviceNodes(rootfs, container.DeviceNodes); err != nil {
+	if err := nodes.CreateDeviceNodes(ct, rootfs, container.DeviceNodes); err != nil {
 		return fmt.Errorf("create device nodes %s", err)
 	}
-*/
+
 	fmt.Println(console);
 	if err := SetupPtmx(ct, rootfs, console, container.Context["mount_label"]); err != nil {
 		return err
