@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
+	"fmt"
 
 	"github.com/docker/libcontainer"
 	"github.com/docker/libcontainer/cgroups"
@@ -106,6 +107,10 @@ func Exec(container *libcontainer.Container, term Terminal, rootfs, dataPath str
 		if err != nil {
 			return -1, err
 		}
+	}
+
+	if err := InitializeNetworking(ct, container); err != nil {
+		return -1, err
 	}
 
 //	syscall.RawSyscall(syscall.SYS_FCNTL, syncPipe.child.Fd(), syscall.F_SETFD, 0)
@@ -226,18 +231,18 @@ func SetupCgroups(container *libcontainer.Container, nspid int) (cgroups.ActiveC
 
 // InitializeNetworking creates the container's network stack outside of the namespace and moves
 // interfaces into the container's net namespaces if necessary
-func InitializeNetworking(container *libcontainer.Container, nspid int, pipe *SyncPipe) error {
+func InitializeNetworking(ct *libct.Container, container *libcontainer.Container) error {
 	context := libcontainer.Context{}
 	for _, config := range container.Networks {
 		strategy, err := network.GetStrategy(config.Type)
 		if err != nil {
 			return err
 		}
-		if err := strategy.Create(config, nspid, context); err != nil {
+		if err := strategy.Create(ct, config, context); err != nil {
 			return err
 		}
 	}
-	return pipe.SendToChild(context)
+	return nil
 }
 
 // GetNamespaceFlags parses the container's Namespaces options to set the correct

@@ -7,13 +7,14 @@ import (
 
 	"github.com/docker/libcontainer"
 	"github.com/dotcloud/docker/pkg/system"
+	libct "github.com/avagin/libct/go"
 )
 
 //  crosbymichael: could make a network strategy that instead of returning veth pair names it returns a pid to an existing network namespace
 type NetNS struct {
 }
 
-func (v *NetNS) Create(n *libcontainer.Network, nspid int, context libcontainer.Context) error {
+func (v *NetNS) Create(ct *libct.Container, n *libcontainer.Network, context libcontainer.Context) error {
 	context["nspath"] = n.Context["nspath"]
 	return nil
 }

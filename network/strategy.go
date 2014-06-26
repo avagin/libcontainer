@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/docker/libcontainer"
+	libct "github.com/avagin/libct/go"
 )
 
 var (
@@ -19,7 +20,7 @@ var strategies = map[string]NetworkStrategy{
 // NetworkStrategy represents a specific network configuration for
 // a container's networking stack
 type NetworkStrategy interface {
-	Create(*libcontainer.Network, int, libcontainer.Context) error
+	Create(*libct.Container, *libcontainer.Network, libcontainer.Context) error
 	Initialize(*libcontainer.Network, libcontainer.Context) error
 }
 

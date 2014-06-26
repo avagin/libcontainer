@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/docker/libcontainer"
 	"github.com/docker/libcontainer/utils"
+	libct "github.com/avagin/libct/go"
 )
 
 // Veth is a network strategy that uses a bridge and creates
@@ -14,15 +15,15 @@ type Veth struct {
 
 const defaultDevice = "eth0"
 
-func (v *Veth) Create(n *libcontainer.Network, nspid int, context libcontainer.Context) error {
+func (v *Veth) Create(ct *libct.Container, n *libcontainer.Network, context libcontainer.Context) error {
 	var (
-		bridge string
+//		bridge string
 		prefix string
 		exists bool
 	)
-	if bridge, exists = n.Context["bridge"]; !exists {
-		return fmt.Errorf("bridge does not exist in network context")
-	}
+//	if bridge, exists = n.Context["bridge"]; !exists {
+//		return fmt.Errorf("bridge does not exist in network context")
+//	}
 	if prefix, exists = n.Context["prefix"]; !exists {
 		return fmt.Errorf("veth prefix does not exist in network context")
 	}
@@ -32,6 +33,11 @@ func (v *Veth) Create(n *libcontainer.Network, nspid int, context libcontainer.C
 	}
 	context["veth-host"] = name1
 	context["veth-child"] = name2
+
+	if err := ct.AddNetVeth(name1, name2); err != nil {
+		return err
+	}
+/*
 	if err := SetInterfaceMaster(name1, bridge); err != nil {
 		return err
 	}
@@ -43,7 +49,7 @@ func (v *Veth) Create(n *libcontainer.Network, nspid int, context libcontainer.C
 	}
 	if err := SetInterfaceInNamespacePid(name2, nspid); err != nil {
 		return err
-	}
+	}*/
 	return nil
 }
 
@@ -89,8 +95,8 @@ func createVethPair(prefix string) (name1 string, name2 string, err error) {
 	if err != nil {
 		return
 	}
-	if err = CreateVethPair(name1, name2); err != nil {
-		return
-	}
+//	if err = CreateVethPair(name1, name2); err != nil {
+//		return
+//	}
 	return
 }

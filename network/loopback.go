@@ -3,13 +3,14 @@ package network
 import (
 	"fmt"
 	"github.com/docker/libcontainer"
+	libct "github.com/avagin/libct/go"
 )
 
 // Loopback is a network strategy that provides a basic loopback device
 type Loopback struct {
 }
 
-func (l *Loopback) Create(n *libcontainer.Network, nspid int, context libcontainer.Context) error {
+func (l *Loopback) Create(*libct.Container, *libcontainer.Network, libcontainer.Context) error {
 	return nil
 }
 
