@@ -43,10 +43,6 @@ func (v *Veth) Create(ct *libct.Container, n *libcontainer.Network, context libc
 		return err;
 	}
 
-	if err := dev.SetMtu(n.Mtu); err != nil {
-		return err;
-	}
-
 	if err := dev.AddIpAddr(n.Address); err != nil {
 		return err;
 	}
@@ -66,11 +62,11 @@ func (v *Veth) Create(ct *libct.Container, n *libcontainer.Network, context libc
 			return err
 		}
 		r.SetDst("default")
-		r.SetDev(defaultDevice)
 		nh, err := r.AddNextHop()
 		if err != nil {
 			return err
 		}
+		nh.SetDev(defaultDevice)
 		nh.SetGateway(n.Gateway)
 	}
 

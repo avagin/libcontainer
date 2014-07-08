@@ -241,6 +241,32 @@ func InitializeNetworking(ct *libct.Container, container *libcontainer.Container
 			return err
 		}
 	}
+
+	for _, config := range container.Routes {
+		r, err := ct.AddRoute()
+		if err != nil {
+			return err;
+		}
+		if config.Destination != "" {
+			r.SetDst(config.Destination)
+		}
+		if config.Source != "" {
+			r.SetDst(config.Source)
+		}
+		if config.Gateway != "" || config.InterfaceName != ""{
+			nh, err := r.AddNextHop()
+			if err != nil {
+				return err;
+			}
+			if config.Gateway != "" {
+				nh.SetGateway(config.Gateway)
+			}
+			if config.InterfaceName != "" {
+				nh.SetDev(config.InterfaceName)
+			}
+		}
+	}
+
 	return nil
 }
 
