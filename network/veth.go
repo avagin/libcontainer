@@ -17,13 +17,13 @@ const defaultDevice = "eth0"
 
 func (v *Veth) Create(ct *libct.Container, n *libcontainer.Network, context libcontainer.Context) error {
 	var (
-//		bridge string
+		bridge string
 		prefix string
 		exists bool
 	)
-//	if bridge, exists = n.Context["bridge"]; !exists {
-//		return fmt.Errorf("bridge does not exist in network context")
-//	}
+	if bridge, exists = n.Context["bridge"]; !exists {
+		return fmt.Errorf("bridge does not exist in network context")
+	}
 	if prefix, exists = n.Context["prefix"]; !exists {
 		return fmt.Errorf("veth prefix does not exist in network context")
 	}
@@ -34,8 +34,18 @@ func (v *Veth) Create(ct *libct.Container, n *libcontainer.Network, context libc
 	context["veth-host"] = name1
 	context["veth-child"] = name2
 
-	if err := ct.AddNetVeth(name1, name2); err != nil {
+	dev, err := ct.AddNetVeth(name1, name2)
+	if err != nil {
 		return err
+	}
+
+	host_dev, err := dev.GetPeer()
+	if err != nil {
+		return err
+	}
+
+	if err := host_dev.SetMaster(bridge); err != nil {
+		return err;
 	}
 /*
 	if err := SetInterfaceMaster(name1, bridge); err != nil {

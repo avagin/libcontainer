@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
-	"fmt"
 
 	"github.com/docker/libcontainer"
 	"github.com/docker/libcontainer/cgroups"
