@@ -20,6 +20,14 @@ type linuxFactory struct {
 // initArgs are the arguments passed during the reexec of the process with
 // the binary of the app to execute
 func New(initArgs []string, logger *log.Logger) Factory {
+	factory := os.Getenv("LIBCONTAINER_FACTORY")
+	switch factory {
+		case "libct":
+			return &libctFactory{
+				initArgs: initArgs,
+				logger:   logger,
+			}
+	}
 	return &linuxFactory{
 		initArgs: initArgs,
 		logger:   logger,
