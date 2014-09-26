@@ -13,6 +13,7 @@ import (
 	"github.com/docker/libcontainer/libct"
 	"github.com/docker/libcontainer/mount"
 	"github.com/docker/libcontainer/network"
+	"github.com/docker/libcontainer/security/capabilities"
 )
 
 // this is to enforce that the libctContainer conforms to the Container interface at compile time
@@ -125,6 +126,27 @@ func (c *libctContainer) changeStatus(s Status) error {
 	return nil
 }
 
+// getEnabledCapabilities returns the capabilities that should not be dropped by the container.
+func getEnabledCapabilities(capList []string) uint64 {
+	var keep uint64 = 0
+	for _, capability := range capList {
+		if c := capabilities.GetCapability(capability); c != nil {
+			keep |= uint64(c.Value)
+		}
+	}
+	return keep
+}
+
+func dropBoundingSet(ct *_libct.Container, capabilities []string) error {
+	caps := getEnabledCapabilities(capabilities)
+
+	if err := ct.SetCaps(caps, _libct.CAPS_BSET); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *libctContainer) startInitProcess(process *Process) error {
 	c.mux.Lock()
 	defer c.mux.Unlock()
@@ -136,6 +158,10 @@ func (c *libctContainer) startInitProcess(process *Process) error {
 
 	c.logger.Printf("container %s starting init process\n", c.path)
 	if err:= c.ct.SetParentDeathSignal(syscall.SIGKILL); err != nil {
+		return err
+	}
+
+	if err:= dropBoundingSet(c.ct, c.config.Capabilities); err != nil {
 		return err
 	}
 
