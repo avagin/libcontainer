@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"syscall"
 
 	_libct "github.com/avagin/libct/go"
 	"github.com/docker/libcontainer/libct"
@@ -134,6 +135,9 @@ func (c *libctContainer) startInitProcess(process *Process) error {
 	c.processes[1] = process
 
 	c.logger.Printf("container %s starting init process\n", c.path)
+	if err:= c.ct.SetParentDeathSignal(syscall.SIGKILL); err != nil {
+		return err
+	}
 
 	err := c.ct.SetNsMask(uint64(getNamespaceFlags(c.config.Namespaces)))
 	if err != nil {
