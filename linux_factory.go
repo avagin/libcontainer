@@ -28,8 +28,7 @@ func New(root string) (Factory, error) {
 		return nil, newGenericError(err, SystemError)
 	}
 
-	return &linuxFactory{
-		root: root,
+	return &libctFactory{
 	}, nil
 }
 
