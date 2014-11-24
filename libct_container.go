@@ -30,6 +30,8 @@ type libctContainer struct {
 	ct *_libct.Container
 
 	p *_libct.ProcessDesc
+
+	state RunState
 }
 
 func newLibctContainer(id string, config *Config, f *libctFactory) (*libctContainer, error) {
@@ -49,6 +51,7 @@ func newLibctContainer(id string, config *Config, f *libctFactory) (*libctContai
 		logger: f.logger,
 		ct:     ct,
 		p:      p,
+		state:  Destroyed,
 	}
 
 	return &c, nil
@@ -84,7 +87,7 @@ func (c *libctContainer) Destroy() error {
 
 	c.logger.Printf("destroying container: %s\n", c.path)
 
-	//	c.state.Status = Destroyed
+	c.state = Destroyed
 
 	return nil
 }
@@ -108,14 +111,36 @@ func (c *libctContainer) StartProcess(process *ProcessConfig) (int, error) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
-	pid, err := c.ct.SpawnExecve(c.p, process.Args[0], process.Args, process.Env, nil)
+	var (
+		pid int
+		err error
+	)
+
+	if c.state == Destroyed {
+		pid, err = c.ct.SpawnExecve(c.p, process.Args[0], process.Args, process.Env, nil)
+	} else {
+		pid, err = c.ct.EnterExecve(c.p, process.Args[0], process.Args, process.Env, nil)
+	}
 	if err != nil {
 		return 0, err
 	}
 
+	c.state = Running
 	c.logger.Printf("container %s waiting on init process\n", c.path)
 
+	go func() {
+		c.ct.Wait()
+		c.changeState(Destroyed)
+	}()
+
 	return pid, err
+}
+
+func (c *libctContainer) changeState(state RunState) {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+
+	c.state = state
 }
 
 func (c *libctContainer) ID() string {
@@ -123,7 +148,7 @@ func (c *libctContainer) ID() string {
 }
 
 func (c *libctContainer) RunState() (RunState, error) {
-	panic("not implemented")
+	return c.state, nil
 }
 
 func (c *libctContainer) Signal(pid, signal int) error {
