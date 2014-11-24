@@ -28,8 +28,7 @@ func New(root string, logger *logrus.Logger) (Factory, error) {
 		return nil, newGenericError(err, SystemError)
 	}
 
-	return &linuxFactory{
-		root:   root,
+	return &libctFactory{
 		logger: logger,
 	}, nil
 }
