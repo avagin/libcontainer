@@ -1,3 +1,5 @@
+// +build cgo,linux
+
 package libcontainer
 
 import (
@@ -7,6 +9,13 @@ import (
 type libctFactory struct {
 	initArgs []string
 	session  *libct.Session
+}
+
+// New returns a linux based container factory based in the root directory.
+func LibctNew(root string, logger *logrus.Logger) (Factory, error) {
+	return &libctFactory{
+		logger: logger,
+	}, nil
 }
 
 func (f *libctFactory) init() error {

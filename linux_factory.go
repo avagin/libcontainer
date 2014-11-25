@@ -28,8 +28,7 @@ func New(root string) (Factory, error) {
 		return nil, newGenericError(err, SystemError)
 	}
 
-	return &libctFactory{
-	}, nil
+	return LibctNew(root)
 }
 
 // linuxFactory implements the default factory interface for linux based systems.
