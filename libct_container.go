@@ -11,6 +11,7 @@ import (
 	"github.com/docker/libcontainer/libct"
 	"github.com/docker/libcontainer/mount"
 	"github.com/docker/libcontainer/namespaces/types"
+	"github.com/docker/libcontainer/network"
 	"github.com/docker/libcontainer/security/capabilities"
 )
 
@@ -35,7 +36,10 @@ type libctContainer struct {
 
 	p *_libct.ProcessDesc
 
-	state RunState
+	rstate RunState
+
+	// containers state for the lifetime of the container
+	state *State
 }
 
 // getEnabledCapabilities returns the capabilities that should not be dropped by the container.
@@ -85,8 +89,11 @@ func newLibctContainer(id string, config *Config, f *libctFactory) (*libctContai
 		logger: f.logger,
 		ct:     ct,
 		p:      p,
-		state:  Destroyed,
+		rstate: Destroyed,
+		state:  &State{},
 	}
+
+	c.setupNetwork()
 
 	return &c, nil
 }
@@ -121,7 +128,7 @@ func (c *libctContainer) Destroy() error {
 
 	c.logger.Printf("destroying container: %s\n", c.path)
 
-	c.state = Destroyed
+	c.rstate = Destroyed
 
 	return nil
 }
@@ -150,7 +157,7 @@ func (c *libctContainer) StartProcess(process *ProcessConfig) (int, error) {
 		err error
 	)
 
-	if c.state == Destroyed {
+	if c.rstate == Destroyed {
 		pid, err = c.ct.SpawnExecve(c.p, process.Args[0], process.Args, process.Env, nil)
 	} else {
 		pid, err = c.ct.EnterExecve(c.p, process.Args[0], process.Args, process.Env, nil)
@@ -159,7 +166,7 @@ func (c *libctContainer) StartProcess(process *ProcessConfig) (int, error) {
 		return 0, err
 	}
 
-	c.state = Running
+	c.rstate = Running
 	c.logger.Printf("container %s waiting on init process\n", c.path)
 
 	go func() {
@@ -174,7 +181,7 @@ func (c *libctContainer) changeState(state RunState) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
-	c.state = state
+	c.rstate = state
 }
 
 func (c *libctContainer) ID() string {
@@ -182,7 +189,7 @@ func (c *libctContainer) ID() string {
 }
 
 func (c *libctContainer) RunState() (RunState, error) {
-	return c.state, nil
+	return c.rstate, nil
 }
 
 func (c *libctContainer) Signal(pid, signal int) error {
@@ -198,4 +205,22 @@ func (c *libctContainer) WaitProcess(pid int) (int, error) {
 func (c *libctContainer) Wait() (int, error) {
 	err := c.ct.Wait()
 	return 0, err
+}
+
+func (c *libctContainer) setupNetwork() error {
+	for _, config := range c.config.Networks {
+		c.logger.Printf("container %s creating network for %s\n", c.path, config.Type)
+
+		strategy, err := libct.GetStrategy(config.Type)
+		if err != nil {
+			return err
+		}
+
+		err = strategy.Create(c.ct, (*network.Network)(config), &c.state.NetworkState)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
