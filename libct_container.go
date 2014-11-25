@@ -36,6 +36,17 @@ type libctContainer struct {
 	state RunState
 }
 
+// getEnabledCapabilities returns the capabilities that should not be dropped by the container.
+func getEnabledCapabilities(capList []string) uint64 {
+	var keep uint64
+	for _, capability := range capList {
+		if c := capabilities.GetCapability(capability); c != nil {
+			keep |= uint64(c.Value)
+		}
+	}
+	return keep
+}
+
 func newLibctContainer(id string, config *Config, f *libctFactory) (*libctContainer, error) {
 	ct, err := f.session.ContainerCreate(id)
 	if err != nil {
@@ -52,7 +63,12 @@ func newLibctContainer(id string, config *Config, f *libctFactory) (*libctContai
 		return nil, err
 	}
 
-	if err:= p.SetParentDeathSignal(syscall.SIGKILL); err != nil {
+	caps := getEnabledCapabilities(config.Capabilities)
+	if err := p.SetCaps(caps, _libct.CAPS_BSET); err != nil {
+		return nil, err
+	}
+
+	if err := p.SetParentDeathSignal(syscall.SIGKILL); err != nil {
 		return nil, err
 	}
 
