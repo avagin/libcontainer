@@ -1,10 +1,31 @@
 FROM crosbymichael/golang
 
-RUN apt-get update && apt-get install -y gcc make
+RUN apt-get update && apt-get install -y gcc make \
+    build-essential \
+    pkg-config \
+    libtool \
+    autoconf \
+    git-core \
+    bison \
+    flex \
+    libselinux1-dev \
+    libapparmor-dev
+
 RUN go get code.google.com/p/go.tools/cmd/cover
 
 ENV GOPATH $GOPATH:/go/src/github.com/docker/libcontainer/vendor
 RUN go get github.com/docker/docker/pkg/term
+
+RUN git clone https://github.com/avagin/libct.git /go/src/github.com/avagin/libct && \
+    cd /go/src/github.com/avagin/libct && \
+    git submodule update --init && \
+    cd .shipped/libnl && \
+    ./autogen.sh && \
+    ./configure && make -j $(nproc) && \
+    cd ../../ && \
+    make clean && make -j $(nproc)
+
+ENV LIBRARY_PATH $LIBRARY_PATH:/go/src/github.com/avagin/libct/src:/go/src/github.com/avagin/libct/.shipped/libnl/lib/.libs/
 
 # setup a playground for us to spawn containers in
 RUN mkdir /busybox && \
