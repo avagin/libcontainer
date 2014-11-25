@@ -66,6 +66,10 @@ func newLibctContainer(id string, config *Config, f *libctFactory) (*libctContai
 		return nil, err
 	}
 
+	if err := p.SetParentDeathSignal(syscall.SIGKILL); err != nil {
+		return nil, err
+	}
+
 	c := libctContainer{
 		id:     id,
 		config: config,
