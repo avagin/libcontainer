@@ -4,6 +4,7 @@ package libcontainer
 
 import (
 	"sync"
+	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	_libct "github.com/avagin/libct/go"
@@ -48,6 +49,10 @@ func newLibctContainer(id string, config *Config, f *libctFactory) (*libctContai
 
 	flags := types.GetNamespaceFlags(config.Namespaces)
 	if err := ct.SetNsMask(uint64(flags)); err != nil {
+		return nil, err
+	}
+
+	if err:= p.SetParentDeathSignal(syscall.SIGKILL); err != nil {
 		return nil, err
 	}
 
