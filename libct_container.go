@@ -7,6 +7,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	_libct "github.com/avagin/libct/go"
+	"github.com/docker/libcontainer/namespaces/types"
 	"github.com/docker/libcontainer/security/capabilities"
 )
 
@@ -42,6 +43,11 @@ func newLibctContainer(id string, config *Config, f *libctFactory) (*libctContai
 
 	p, err := f.session.ProcessCreateDesc()
 	if err != nil {
+		return nil, err
+	}
+
+	flags := types.GetNamespaceFlags(config.Namespaces)
+	if err := ct.SetNsMask(uint64(flags)); err != nil {
 		return nil, err
 	}
 

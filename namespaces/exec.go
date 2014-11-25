@@ -12,8 +12,8 @@ import (
 	"github.com/docker/libcontainer/cgroups"
 	"github.com/docker/libcontainer/cgroups/fs"
 	"github.com/docker/libcontainer/cgroups/systemd"
-	"github.com/docker/libcontainer/network"
 	"github.com/docker/libcontainer/namespaces/types"
+	"github.com/docker/libcontainer/network"
 	"github.com/docker/libcontainer/syncpipe"
 	"github.com/docker/libcontainer/system"
 )
