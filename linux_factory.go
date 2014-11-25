@@ -28,9 +28,7 @@ func New(root string, logger *logrus.Logger) (Factory, error) {
 		return nil, newGenericError(err, SystemError)
 	}
 
-	return &libctFactory{
-		logger: logger,
-	}, nil
+	return LibctNew(root, logger)
 }
 
 // linuxFactory implements the default factory interface for linux based systems.
