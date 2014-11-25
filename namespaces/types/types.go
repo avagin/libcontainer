@@ -1,4 +1,4 @@
-package namespaces
+package types
 
 import "errors"
 
@@ -47,4 +47,17 @@ func (n Namespaces) Get(ns string) *Namespace {
 		}
 	}
 	return nil
+}
+
+// GetNamespaceFlags parses the container's Namespaces options to set the correct
+// flags on clone, unshare, and setns
+func GetNamespaceFlags(namespaces map[string]bool) (flag int) {
+	for key, enabled := range namespaces {
+		if enabled {
+			if ns := GetNamespace(key); ns != nil {
+				flag |= ns.Value
+			}
+		}
+	}
+	return flag
 }

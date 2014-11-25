@@ -13,6 +13,7 @@ import (
 	"github.com/docker/libcontainer/cgroups/fs"
 	"github.com/docker/libcontainer/cgroups/systemd"
 	"github.com/docker/libcontainer/network"
+	"github.com/docker/libcontainer/namespaces/types"
 	"github.com/docker/libcontainer/syncpipe"
 	"github.com/docker/libcontainer/system"
 )
@@ -147,7 +148,7 @@ func DefaultCreateCommand(container *libcontainer.Config, console, dataPath, ini
 	if command.SysProcAttr == nil {
 		command.SysProcAttr = &syscall.SysProcAttr{}
 	}
-	command.SysProcAttr.Cloneflags = uintptr(GetNamespaceFlags(container.Namespaces))
+	command.SysProcAttr.Cloneflags = uintptr(types.GetNamespaceFlags(container.Namespaces))
 
 	command.SysProcAttr.Pdeathsig = syscall.SIGKILL
 	command.ExtraFiles = []*os.File{pipe}
@@ -184,17 +185,4 @@ func InitializeNetworking(container *libcontainer.Config, nspid int, pipe *syncp
 		}
 	}
 	return pipe.SendToChild(networkState)
-}
-
-// GetNamespaceFlags parses the container's Namespaces options to set the correct
-// flags on clone, unshare, and setns
-func GetNamespaceFlags(namespaces map[string]bool) (flag int) {
-	for key, enabled := range namespaces {
-		if enabled {
-			if ns := GetNamespace(key); ns != nil {
-				flag |= ns.Value
-			}
-		}
-	}
-	return flag
 }
