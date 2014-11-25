@@ -12,10 +12,8 @@ type libctFactory struct {
 }
 
 // New returns a linux based container factory based in the root directory.
-func LibctNew(root string, logger *logrus.Logger) (Factory, error) {
-	return &libctFactory{
-		logger: logger,
-	}, nil
+func LibctNew(root string) (Factory, error) {
+	return &libctFactory{}, nil
 }
 
 func (f *libctFactory) init() error {
