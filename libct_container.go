@@ -4,6 +4,7 @@ package libcontainer
 
 import (
 	"sync"
+	"syscall"
 
 	_libct "github.com/avagin/libct/go"
 	"github.com/golang/glog"
@@ -31,6 +32,24 @@ type libctContainer struct {
 	state RunState
 }
 
+var namespaceInfo = map[string]int{
+	"NEWNET":  syscall.CLONE_NEWNET,
+	"NEWNS":   syscall.CLONE_NEWNS,
+	"NEWUSER": syscall.CLONE_NEWUSER,
+	"NEWIPC":  syscall.CLONE_NEWIPC,
+	"NEWUTS":  syscall.CLONE_NEWUTS,
+	"NEWPID":  syscall.CLONE_NEWPID,
+}
+
+// GetNamespaceFlags parses the container's Namespaces options to set the correct
+// flags on clone, unshare, and setns
+func GetNamespaceFlags(namespaces []Namespace) (flag int) {
+	for _, v := range namespaces {
+		flag |= namespaceInfo[v.Name]
+	}
+	return flag
+}
+
 func newLibctContainer(id string, config *Config, f *libctFactory) (*libctContainer, error) {
 	ct, err := f.session.ContainerCreate(id)
 	if err != nil {
@@ -39,6 +58,11 @@ func newLibctContainer(id string, config *Config, f *libctFactory) (*libctContai
 
 	p, err := f.session.ProcessCreateDesc()
 	if err != nil {
+		return nil, err
+	}
+
+	flags := GetNamespaceFlags(config.Namespaces)
+	if err := ct.SetNsMask(uint64(flags)); err != nil {
 		return nil, err
 	}
 
