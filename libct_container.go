@@ -8,6 +8,8 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	_libct "github.com/avagin/libct/go"
+	"github.com/docker/libcontainer/libct"
+	"github.com/docker/libcontainer/mount"
 	"github.com/docker/libcontainer/namespaces/types"
 	"github.com/docker/libcontainer/security/capabilities"
 )
@@ -60,6 +62,11 @@ func newLibctContainer(id string, config *Config, f *libctFactory) (*libctContai
 
 	flags := types.GetNamespaceFlags(config.Namespaces)
 	if err := ct.SetNsMask(uint64(flags)); err != nil {
+		return nil, err
+	}
+
+	if err := libct.InitializeMountNamespace(ct, config.RootFs, "",
+		(*mount.MountConfig)(config.MountConfig)); err != nil {
 		return nil, err
 	}
 
