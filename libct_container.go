@@ -7,8 +7,8 @@ import (
 	"syscall"
 
 	"github.com/Sirupsen/logrus"
-	_libct "github.com/avagin/libct/go"
 	"github.com/docker/libcontainer/libct"
+	_libct "github.com/docker/libcontainer/libct/libct/go"
 	"github.com/docker/libcontainer/mount"
 	"github.com/docker/libcontainer/namespaces/types"
 	"github.com/docker/libcontainer/network"

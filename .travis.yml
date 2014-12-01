@@ -21,15 +21,14 @@ install:
       fi
     - echo $_GOOS $_GOARCH $CGO_ENABLED
     - if [ "$_GOOS" = "linux" ] && [ "$_GOARCH" = "amd64" ] && [ "$CGO_ENABLED" -ne 0 ]; then
+          git submodule update --init --recursive;
           sudo apt-get install make gcc autoconf autoconf-doc libtool bison flex libselinux1-dev libapparmor-dev;
-          git clone https://github.com/avagin/libct.git;
-          cd libct;
+          cd libct/libct;
           git submodule update --init --recursive;
           cd .shipped/libnl && ./autogen.sh && ./configure && make -j2 && sudo make install && cd ../../;
           make -j2;
-          ln -sv "$(readlink -f go)" "${GOPATH%%:*}/src/github.com/avagin/libct/go";
           export LIBRARY_PATH=$LIBRARY_PATH:$(readlink -f .):$(readlink -f go)/.shipped/libnl;
-          cd ..;
+          cd ../..;
       fi
     - export GOPATH="$GOPATH:$(pwd)/vendor"
     - if [ -z "$TRAVIS_GLOBAL_WTF" ]; then go env; fi

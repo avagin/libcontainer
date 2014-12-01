@@ -4,7 +4,7 @@ package libcontainer
 
 import (
 	"github.com/Sirupsen/logrus"
-	libct "github.com/avagin/libct/go"
+	libct "github.com/docker/libcontainer/libct/libct/go"
 )
 
 type libctFactory struct {

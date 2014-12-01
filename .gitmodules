@@ -1,0 +1,3 @@
+[submodule "libct/libct"]
+	path = libct/libct
+	url = https://github.com/avagin/libct.git
