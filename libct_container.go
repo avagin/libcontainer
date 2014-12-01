@@ -6,8 +6,8 @@ import (
 	"sync"
 	"syscall"
 
-	_libct "github.com/avagin/libct/go"
 	"github.com/docker/libcontainer/libct"
+	_libct "github.com/docker/libcontainer/libct/libct/go"
 	"github.com/docker/libcontainer/mount"
 	"github.com/docker/libcontainer/network"
 	"github.com/docker/libcontainer/security/capabilities"

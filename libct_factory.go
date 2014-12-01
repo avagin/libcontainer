@@ -3,7 +3,7 @@
 package libcontainer
 
 import (
-	libct "github.com/avagin/libct/go"
+	libct "github.com/docker/libcontainer/libct/libct/go"
 )
 
 type libctFactory struct {

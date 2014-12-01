@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	_libct "github.com/avagin/libct/go"
+	_libct "github.com/docker/libcontainer/libct/libct/go"
 	"github.com/docker/libcontainer/network"
 	"github.com/docker/libcontainer/utils"
 )

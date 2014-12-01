@@ -15,6 +15,15 @@ RUN curl -sSL https://raw.githubusercontent.com/docker/docker/master/project/din
 
 COPY . /go/src/github.com/docker/libcontainer
 WORKDIR /go/src/github.com/docker/libcontainer
+
+RUN cd libct/libct && \
+    cd .shipped/libnl && \
+    ./autogen.sh && \
+    ./configure && make -j $(nproc) && \
+    cd ../../ && \
+    make clean && make -j $(nproc)
+ENV LIBRARY_PATH $LIBRARY_PATH:/go/src/github.com/docker/libcontainer/libct/libct/:/go/src/github.com/docker/libcontainer/libct/libct/.shipped/libnl/lib/.libs/
+
 RUN cp sample_configs/minimal.json /busybox/container.json
 
 RUN go get -d -v ./...

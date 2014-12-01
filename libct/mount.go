@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"syscall"
 
-	_libct "github.com/avagin/libct/go"
 	"github.com/docker/libcontainer/devices"
 	"github.com/docker/libcontainer/label"
+	_libct "github.com/docker/libcontainer/libct/libct/go"
 	"github.com/docker/libcontainer/mount"
 	"github.com/docker/libcontainer/utils"
 )
