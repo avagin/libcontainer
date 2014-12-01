@@ -5,6 +5,7 @@ package libcontainer
 import (
 	"testing"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/docker/libcontainer/cgroups"
 )
 
@@ -21,11 +22,16 @@ func (m *mockCgroupManager) GetStats(config *cgroups.Cgroup) (*cgroups.Stats, er
 	return m.stats, nil
 }
 
+func (m *mockCgroupManager) String() string {
+	return "linux_test"
+}
+
 func TestGetContainerPids(t *testing.T) {
 	container := &linuxContainer{
 		id:            "myid",
 		config:        &Config{},
 		cgroupManager: &mockCgroupManager{pids: []int{1, 2, 3}},
+		logger:        logrus.New(),
 	}
 
 	pids, err := container.Processes()
@@ -52,7 +58,8 @@ func TestGetContainerStats(t *testing.T) {
 				},
 			},
 		},
-		state: &State{},
+		state:  &State{},
+		logger: logrus.New(),
 	}
 
 	stats, err := container.Stats()
