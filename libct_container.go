@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	_libct "github.com/avagin/libct/go"
-	"github.com/docker/libcontainer/security/capabilities"
+	"github.com/golang/glog"
 )
 
 // this is to enforce that the libctContainer conforms to the Container interface at compile time
@@ -45,7 +45,6 @@ func newLibctContainer(id string, config *Config, f *libctFactory) (*libctContai
 	c := libctContainer{
 		id:     id,
 		config: config,
-		logger: f.logger,
 		ct:     ct,
 		p:      p,
 		state:  Destroyed,
@@ -67,7 +66,7 @@ func (c *libctContainer) Config() *Config {
 
 // Stats returns the container's statistics for various cgroup subsystems
 func (c *libctContainer) Stats() (*ContainerStats, error) {
-	c.logger.Printf("reading stats for container: %s\n", c.path)
+	glog.Infof("reading stats for container: %s\n", c.path)
 
 	panic("not implemented")
 }
@@ -82,7 +81,7 @@ func (c *libctContainer) Destroy() error {
 		return err
 	}
 
-	c.logger.Printf("destroying container: %s\n", c.path)
+	glog.Infof("destroying container: %s\n", c.path)
 
 	c.state = Destroyed
 
@@ -123,7 +122,7 @@ func (c *libctContainer) StartProcess(process *ProcessConfig) (int, error) {
 	}
 
 	c.state = Running
-	c.logger.Printf("container %s waiting on init process\n", c.path)
+	glog.Infof("container %s waiting on init process\n", c.path)
 
 	go func() {
 		c.ct.Wait()
@@ -149,12 +148,12 @@ func (c *libctContainer) RunState() (RunState, error) {
 }
 
 func (c *libctContainer) Signal(pid, signal int) error {
-	c.logger.Debugf("sending signal %d to pid %d", signal, pid)
+	glog.Infof("sending signal %d to pid %d", signal, pid)
 	panic("not implemented")
 }
 
 func (c *libctContainer) WaitProcess(pid int) (int, error) {
-	c.logger.Debugf("wait process %d", pid)
+	glog.Infof("wait process %d", pid)
 	panic("not implemented")
 }
 

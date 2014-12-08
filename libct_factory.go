@@ -1,7 +1,6 @@
 package libcontainer
 
 import (
-	"github.com/Sirupsen/logrus"
 	libct "github.com/avagin/libct/go"
 )
 

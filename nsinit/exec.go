@@ -56,7 +56,7 @@ func execAction(context *cli.Context) {
 		log.Fatal(err)
 	}
 
-	factory, err := libcontainer.New(context.GlobalString("root"), logger)
+	factory, err := libcontainer.New(context.GlobalString("root"))
 	if err != nil {
 		log.Fatal(err)
 	}
