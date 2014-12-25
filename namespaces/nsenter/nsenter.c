@@ -26,6 +26,11 @@ void get_args(int *argc, char ***argv)
 {
 	// Read argv
 	int fd = open("/proc/self/cmdline", O_RDONLY);
+	if (fd < 0) {
+		fprintf(stderr,
+			"nsenter: Unable to open /proc/self/cmdline: %m\n");
+		exit(1);
+	}
 
 	// Read the whole commandline.
 	ssize_t contents_size = 0;
@@ -38,6 +43,11 @@ void get_args(int *argc, char ***argv)
 		bytes_read =
 		    read(fd, contents + contents_offset,
 			 contents_size - contents_offset);
+		if (bytes_read < 0) {
+			fprintf(stderr,
+				"nsenter: Unable to read from /proc/self/cmdline: %m\n");
+			exit(1);
+		}
 		contents_offset += bytes_read;
 	}
 	while (bytes_read > 0);
@@ -186,6 +196,10 @@ void nsenter()
 
 	// We must fork to actually enter the PID namespace.
 	int child = fork();
+	if (child == -1) {
+		fprintf(stderr, "nsenter: Unable to fork a process: %m\n");
+		exit(1);
+	}
 	if (child == 0) {
 		if (consolefd != -1) {
 			if (dup2(consolefd, STDIN_FILENO) != 0) {
