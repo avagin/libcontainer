@@ -1,10 +1,12 @@
 package integration
 
 import (
+	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 
+	"github.com/docker/libcontainer"
 	"github.com/docker/libcontainer/configs"
 )
 
@@ -187,4 +189,137 @@ func getNamespaceIndex(config *configs.Config, name string) int {
 		}
 	}
 	return -1
+}
+
+func newTestRoot() (string, error) {
+	dir, err := ioutil.TempDir("", "libcontainer")
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return "", err
+	}
+	return dir, nil
+}
+
+func TestEnter(t *testing.T) {
+	root, err := newTestRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(root)
+
+	rootfs, err := newRootFs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer remove(rootfs)
+
+	config := newTemplateConfig(rootfs)
+
+	factory, err := libcontainer.New(root, []string{os.Args[0], "init", "--"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	container, err := factory.Create("test", config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer container.Destroy()
+
+	// Execute a first process in the container
+	stdinR, stdinW, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stdoutR, stdoutW, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pconfig := libcontainer.ProcessConfig{
+		Args:  []string{"sh", "-c", "cat && readlink /proc/self/ns/pid"},
+		Stdin: stdinR,
+		Stdout: stdoutW,
+	}
+	pid, err := container.StartProcess(&pconfig)
+	stdinR.Close()
+	stdoutW.Close()
+	defer stdinW.Close()
+	defer stdoutR.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Execute a process in the container
+	stdinR2, stdinW2, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stdoutR2, stdoutW2, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pconfig.Args = []string{"sh", "-c", "cat && readlink /proc/self/ns/pid"}
+	pconfig.Stdin = stdinR2
+	pconfig.Stdout = stdoutW2
+
+	pid2, err := container.StartProcess(&pconfig)
+	stdinR2.Close()
+	stdoutW2.Close()
+	defer stdinW2.Close()
+	defer stdoutR2.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	process2, err := os.FindProcess(pid2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check that both processes live in the same pidns
+	var buf = make([]byte, 64)
+
+	stdinW2.Close()
+	n, err := stdoutR2.Read(buf)
+	pidns2 := string(buf[0:n])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stdinW.Close()
+	n, err = stdoutR.Read(buf)
+	pidns := string(buf[0:n])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if pidns != pidns2 {
+		t.Fatal("The second process isn't in the required pid namespace %s %s", pidns, pidns2)
+	}
+
+	s, err := process.Wait()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !s.Success() {
+		t.Fatal(s.String())
+	}
+
+	s, err = process2.Wait()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !s.Success() {
+		t.Fatal(s.String())
+	}
 }
