@@ -6,10 +6,13 @@ import (
 	"log"
 	"os"
 	"syscall"
+	"io"
 
 	"github.com/codegangsta/cli"
 	"github.com/docker/libcontainer"
 	"github.com/docker/libcontainer/configs"
+	consolepkg "github.com/docker/libcontainer/console"
+	"github.com/docker/docker/pkg/term"
 )
 
 var (
@@ -29,15 +32,19 @@ var execCommand = cli.Command{
 }
 
 func execAction(context *cli.Context) {
-	var exitCode int
+	var (
+		master  *os.File
+		console string
+		err     error
 
-	process := &libcontainer.ProcessConfig{
-		Args:   context.Args(),
-		Env:    context.StringSlice("env"),
-		Stdin:  os.Stdin,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
-	}
+		sigc = make(chan os.Signal, 10)
+
+		stdin  = os.Stdin
+		stdout = os.Stdout
+		stderr = os.Stderr
+
+		exitCode int
+	)
 
 	factory, err := libcontainer.New(context.GlobalString("root"), []string{os.Args[0], "init", "--fd", "3", "--"})
 	if err != nil {
@@ -59,6 +66,37 @@ func execAction(context *cli.Context) {
 		log.Fatal(err)
 	}
 
+	if container.Config().Tty {
+		stdin = nil
+		stdout = nil
+		stderr = nil
+
+		master, console, err = consolepkg.CreateMasterAndConsole()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		go io.Copy(master, os.Stdin)
+		go io.Copy(os.Stdout, master)
+
+		state, err := term.SetRawTerminal(os.Stdin.Fd())
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		defer term.RestoreTerminal(os.Stdin.Fd(), state)
+	}
+
+	process := &libcontainer.ProcessConfig{
+		Args:   context.Args(),
+		Env:    context.StringSlice("env"),
+		Stdin:  stdin,
+		Stdout: stdout,
+		Stderr: stderr,
+		Console: console,
+	}
+
+
 	pid, err := container.StartProcess(process)
 	if err != nil {
 		log.Fatalf("failed to exec: %s", err)
@@ -68,6 +106,19 @@ func execAction(context *cli.Context) {
 	if err != nil {
 		log.Fatalf("Unable to find the %d process: %s", pid, err)
 	}
+
+	go func() {
+		resizeTty(master)
+
+		for sig := range sigc {
+			switch sig {
+			case syscall.SIGWINCH:
+				resizeTty(master)
+			default:
+				p.Signal(sig)
+			}
+		}
+	}()
 
 	ps, err := p.Wait()
 	if err != nil {
@@ -85,4 +136,19 @@ func execAction(context *cli.Context) {
 	}
 
 	os.Exit(exitCode)
+}
+
+func resizeTty(master *os.File) {
+	if master == nil {
+		return
+	}
+
+	ws, err := term.GetWinsize(os.Stdin.Fd())
+	if err != nil {
+		return
+	}
+
+	if err := term.SetWinsize(master.Fd(), ws); err != nil {
+		return
+	}
 }
