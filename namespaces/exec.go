@@ -34,7 +34,7 @@ func Exec(args []string, env []string, command *exec.Cmd, container *configs.Con
 	command.ExtraFiles = []*os.File{child}
 
 	command.Dir = container.RootFs
-	command.SysProcAttr.Cloneflags = uintptr(GetNamespaceFlags(container.Namespaces))
+	command.SysProcAttr.Cloneflags = uintptr(GetNamespaceFlags(container.Namespaces, true))
 
 	if err := command.Start(); err != nil {
 		child.Close()
@@ -132,7 +132,7 @@ func DefaultCreateCommand(container *configs.Config, console, dataPath, init str
 	if command.SysProcAttr == nil {
 		command.SysProcAttr = &syscall.SysProcAttr{}
 	}
-	command.SysProcAttr.Cloneflags = uintptr(GetNamespaceFlags(container.Namespaces))
+	command.SysProcAttr.Cloneflags = uintptr(GetNamespaceFlags(container.Namespaces, true))
 
 	command.SysProcAttr.Pdeathsig = syscall.SIGKILL
 	command.ExtraFiles = []*os.File{pipe}
