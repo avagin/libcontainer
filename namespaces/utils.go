@@ -37,8 +37,11 @@ func newInitPipe() (parent *os.File, child *os.File, err error) {
 
 // GetNamespaceFlags parses the container's Namespaces options to set the correct
 // flags on clone, unshare, and setns
-func GetNamespaceFlags(namespaces libcontainer.Namespaces) (flag int) {
+func GetNamespaceFlags(namespaces libcontainer.Namespaces, only_new bool) (flag int) {
 	for _, v := range namespaces {
+		if only_new && v.Path != "" {
+			continue
+		}
 		flag |= namespaceInfo[v.Type]
 	}
 	return flag
