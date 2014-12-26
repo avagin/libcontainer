@@ -106,6 +106,12 @@ func Init(pipe *os.File) (err error) {
 		}
 	}
 
+	cloneFlags := GetNamespaceFlags(container.Namespaces, false)
+
+	if (cloneFlags & syscall.CLONE_NEWNET) == 0 &&
+            (len(container.Networks) != 0 || len(container.Routes) != 0) {
+		return fmt.Errorf("unable to apply network parameters without network namespace")
+	}
 	if err := setupNetwork(container, networkState); err != nil {
 		return fmt.Errorf("setup networking %s", err)
 	}
@@ -119,14 +125,21 @@ func Init(pipe *os.File) (err error) {
 
 	label.Init()
 
-	if err := mount.InitializeMountNamespace(rootfs,
-		process.ConsolePath,
-		container.RestrictSys,
-		(*mount.MountConfig)(container.MountConfig)); err != nil {
+	if (cloneFlags & syscall.CLONE_NEWNS) == 0 {
+		if container.MountConfig != nil {
+			fmt.Errorf("mount_config is set without a mount namespace");
+		}
+	} else if err := mount.InitializeMountNamespace(rootfs,
+			process.ConsolePath,
+			container.RestrictSys,
+			(*mount.MountConfig)(container.MountConfig)); err != nil {
 		return fmt.Errorf("setup mount namespace %s", err)
 	}
 
 	if container.Hostname != "" {
+		if (cloneFlags & syscall.CLONE_NEWUTS) == 0 {
+			return fmt.Errorf("unable to set the hostname without UTS namespace");
+		}
 		if err := syscall.Sethostname([]byte(container.Hostname)); err != nil {
 			return fmt.Errorf("unable to sethostname %q: %s", container.Hostname, err)
 		}
@@ -142,6 +155,9 @@ func Init(pipe *os.File) (err error) {
 
 	// TODO: (crosbymichael) make this configurable at the Config level
 	if container.RestrictSys {
+		if (cloneFlags & syscall.CLONE_NEWNS) == 0 {
+			return fmt.Errorf("unable to restrict access to syctl without mount namespace");
+		}
 		if err := restrict.Restrict("proc/sys", "proc/sysrq-trigger", "proc/irq", "proc/bus"); err != nil {
 			return err
 		}
