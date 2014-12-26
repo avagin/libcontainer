@@ -107,39 +107,6 @@ func Exec(args []string, env []string, command *exec.Cmd, container *configs.Con
 	return nil
 }
 
-// DefaultCreateCommand will return an exec.Cmd with the Cloneflags set to the proper namespaces
-// defined on the container's configuration and use the current binary as the init with the
-// args provided
-//
-// console: the /dev/console to setup inside the container
-// init: the program executed inside the namespaces
-// root: the path to the container json file and information
-// pipe: sync pipe to synchronize the parent and child processes
-// args: the arguments to pass to the container to run as the user's program
-func DefaultCreateCommand(container *configs.Config, console, dataPath, init string, pipe *os.File, args []string) *exec.Cmd {
-	// get our binary name from arg0 so we can always reexec ourself
-	env := []string{
-		"console=" + console,
-		"pipe=3",
-		"data_path=" + dataPath,
-	}
-
-	command := exec.Command(init, append([]string{"init", "--"}, args...)...)
-	// make sure the process is executed inside the context of the rootfs
-	command.Dir = container.RootFs
-	command.Env = append(os.Environ(), env...)
-
-	if command.SysProcAttr == nil {
-		command.SysProcAttr = &syscall.SysProcAttr{}
-	}
-	command.SysProcAttr.Cloneflags = uintptr(GetNamespaceFlags(container.Namespaces, true))
-
-	command.SysProcAttr.Pdeathsig = syscall.SIGKILL
-	command.ExtraFiles = []*os.File{pipe}
-
-	return command
-}
-
 // SetupCgroups applies the cgroup restrictions to the process running in the container based
 // on the container's configuration
 func SetupCgroups(container *configs.Config, nspid int) (map[string]string, error) {
