@@ -48,6 +48,12 @@ func (c *linuxContainer) RunState() (configs.RunState, error) {
 		return 0, err
 	}
 
+	// TODO config.Pausing
+	if c.config.Cgroups != nil &&
+	   c.config.Cgroups.Freezer == cgroups.Frozen {
+		return configs.Paused, nil
+	}
+
 	//FIXME get a cgroup state to check other states
 
 	return configs.Running, nil
@@ -163,13 +169,11 @@ func (c *linuxContainer) Destroy() error {
 }
 
 func (c *linuxContainer) Pause() error {
-	glog.Info("pause container")
-	panic("not implemented")
+	return c.cgroupManager.Freeze(cgroups.Frozen)
 }
 
 func (c *linuxContainer) Resume() error {
-	glog.Info("resume container")
-	panic("not implemented")
+	return c.cgroupManager.Freeze(cgroups.Thawed)
 }
 
 func (c *linuxContainer) Signal(pid, signal int) error {
