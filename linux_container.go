@@ -48,7 +48,6 @@ func (c *linuxContainer) RunState() (configs.RunState, error) {
 		return 0, err
 	}
 
-	// TODO config.Pausing
 	if c.config.Cgroups != nil &&
 	   c.config.Cgroups.Freezer == cgroups.Frozen {
 		return configs.Paused, nil
