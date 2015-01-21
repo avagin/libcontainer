@@ -361,11 +361,11 @@ func TestFreeze(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if state != configs.Paused {
-		t.Fatal("Unexpected state: ", state)
-	}
 	if err := container.Resume(); err != nil {
 		t.Fatal(err)
+	}
+	if state != configs.Paused {
+		t.Fatal("Unexpected state: ", state)
 	}
 
 	stdinW.Close()
