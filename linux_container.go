@@ -175,9 +175,32 @@ func (c *linuxContainer) Resume() error {
 	return c.cgroupManager.Freeze(cgroups.Thawed)
 }
 
+func (c *linuxContainer) contains(pid int) error {
+	processes, err := c.Processes()
+	if err != nil {
+		return nil
+	}
+
+	for p := range processes {
+		if p == pid {
+			return nil
+		}
+	}
+
+	return newGenericError(nil, ProcessNotExists)
+}
+
 func (c *linuxContainer) Signal(pid, signal int) error {
-	glog.Infof("sending signal %d to pid %d", signal, pid)
-	panic("not implemented")
+	if err := c.contains(pid); err != nil {
+		return err
+	}
+
+	err := syscall.Kill(pid, syscall.Signal(signal))
+	if err != nil {
+		return newGenericError(err, SystemError)
+	}
+
+	return nil
 }
 
 func (c *linuxContainer) Wait() (int, error) {

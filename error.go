@@ -15,6 +15,7 @@ const (
 	ContainerNotExists
 	ContainerPaused
 	ContainerNotStopped
+	ProcessNotExists
 
 	// Common errors
 	ConfigInvalid
