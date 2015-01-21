@@ -164,6 +164,7 @@ func (c *linuxContainer) Destroy() error {
 	}
 
 	os.RemoveAll(c.root)
+	c.cgroupManager.Wait()
 	return nil
 }
 
@@ -181,7 +182,6 @@ func (c *linuxContainer) Signal(pid, signal int) error {
 }
 
 func (c *linuxContainer) Wait() (int, error) {
-	glog.Info("wait container")
 	panic("not implemented")
 }
 

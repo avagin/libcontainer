@@ -22,6 +22,8 @@ type Manager interface {
 	// Destroys the cgroup set
 	Destroy() error
 
+	Wait() error
+
 	// NewCgroupManager() and LoadCgroupManager() require following attributes:
 	// 	Paths   map[string]string
 	// 	Cgroups *cgroups.Cgroup

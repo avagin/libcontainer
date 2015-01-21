@@ -22,6 +22,7 @@ import (
 type Manager struct {
 	Cgroups *cgroups.Cgroup
 	Paths   map[string]string
+	waitChan chan bool
 }
 
 type subsystem interface {
@@ -32,6 +33,7 @@ var (
 	connLock              sync.Mutex
 	theConn               *systemd.Conn
 	hasStartTransientUnit bool
+	queue			map[string]chan<- bool
 )
 
 func newProp(name string, units interface{}) systemd.Property {
@@ -57,6 +59,32 @@ func UseSystemd() bool {
 			return false
 		}
 
+		queue = make(map[string]chan<- bool)
+
+		go func() {
+			theConn.Subscribe()
+			evChan, _ := theConn.SubscribeUnitsCustom(time.Second, 0, func(u1, u2 *systemd.UnitStatus) bool { return u2 == nil }, nil)
+
+			for ;; {
+				changes := <-evChan
+				if changes == nil {
+					break;
+				}
+				for k := range(changes) {
+					if changes[k] != nil {
+						continue
+					}
+					c, ok := queue[k]
+					delete(queue, k)
+					c <- true
+					close(c)
+					if ok {
+						fmt.Fprintf(os.Stderr, "%s %v\n", k, changes[k])
+					}
+				}
+			}
+		} ()
+
 		// Assume we have StartTransientUnit
 		hasStartTransientUnit = true
 
@@ -80,6 +108,13 @@ func getIfaceForUnit(unitName string) string {
 		return "Service"
 	}
 	return "Unit"
+}
+
+func (m *Manager) Wait() error {
+
+	_ = <-m.waitChan
+
+	return nil
 }
 
 func (m *Manager) Apply(pid int) error {
@@ -121,6 +156,10 @@ func (m *Manager) Apply(pid int) error {
 	if _, err := theConn.StartTransientUnit(unitName, "replace", properties...); err != nil {
 		return err
 	}
+
+	m.waitChan = make(chan bool)
+	queue[unitName] = m.waitChan
+	fmt.Fprintf(os.Stderr, "Start %s\n", unitName)
 
 	if !c.AllowAllDevices {
 		if err := joinDevices(c, pid); err != nil {

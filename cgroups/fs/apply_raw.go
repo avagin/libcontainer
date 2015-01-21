@@ -62,6 +62,10 @@ type data struct {
 	pid    int
 }
 
+func (m *Manager) Wait() error {
+	panic("not implemented")
+}
+
 func (m *Manager) Apply(pid int) error {
 	if m.Cgroups == nil {
 		return nil
