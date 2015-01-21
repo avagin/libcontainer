@@ -62,7 +62,7 @@ func (c *linuxContainer) Processes() ([]int, error) {
 	glog.Info("fetch container processes")
 	pids, err := c.cgroupManager.GetPids()
 	if err != nil {
-		return nil, newGenericError(err, SystemError)
+		return nil, newGenericError(err, ProcessNotExists)
 	}
 	return pids, nil
 }
@@ -175,17 +175,49 @@ func (c *linuxContainer) Resume() error {
 	return c.cgroupManager.Freeze(cgroups.Thawed)
 }
 
+func (c *linuxContainer) contains(pid int) error {
+	processes, err := c.Processes()
+	if err != nil {
+		return nil
+	}
+
+	for p := range processes {
+		if p == pid {
+			return nil
+		}
+	}
+
+	return newGenericError(err, SystemError)
+}
+
 func (c *linuxContainer) Signal(pid, signal int) error {
-	glog.Infof("sending signal %d to pid %d", signal, pid)
-	panic("not implemented")
+	if err := c.contains(pid); err != nil {
+		return err
+	}
+
+	err := syscall.Kill(pid, syscall.Signal(signal))
+	if (err != nil) {
+		return newGenericError(err, SystemError)
+	}
+
+	return nil
 }
 
 func (c *linuxContainer) Wait() (int, error) {
-	glog.Info("wait container")
-	panic("not implemented")
+	return c.WaitProcess(c.state.InitPid)
 }
 
 func (c *linuxContainer) WaitProcess(pid int) (int, error) {
-	glog.Infof("wait process %d", pid)
-	panic("not implemented")
+	if err := c.contains(pid); err != nil {
+		return -1, err
+	}
+
+	var status syscall.WaitStatus
+
+        _, err := syscall.Wait4(pid, &status, 0, nil)
+        if err != nil {
+                return -1, newGenericError(err, SystemError)
+        }
+
+	return int(status), err
 }

@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/docker/libcontainer"
@@ -252,11 +253,6 @@ func TestEnter(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	pconfig.Args = []string{"readlink", "/proc/self/ns/pid"}
 	pconfig.Stdin = nil
 	pconfig.Stdout = &stdout2
@@ -266,26 +262,25 @@ func TestEnter(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	process2, err := os.FindProcess(pid2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	var s syscall.WaitStatus
 
-	s, err := process2.Wait()
+	ret, err := container.WaitProcess(pid2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !s.Success() {
-		t.Fatal(s.String())
+	s = syscall.WaitStatus(ret)
+	if s.ExitStatus() == 0 {
+		t.Fatal(s)
 	}
 
 	stdinW.Close()
-	s, err = process.Wait()
+	ret, err = container.WaitProcess(pid)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !s.Success() {
-		t.Fatal(s.String())
+	s = syscall.WaitStatus(ret)
+	if s.ExitStatus() == 0 {
+		t.Fatal(s)
 	}
 
 	// Check that both processes live in the same pidns
