@@ -26,9 +26,11 @@ import (
 
 // Process is used for transferring parameters from Exec() to Init()
 type processArgs struct {
-	Args        []string `json:"args,omitempty"`
-	Env         []string `json:"environment,omitempty"`
-	ConsolePath string   `json:"console_path,omitempty"`
+	Args         []string              `json:"args,omitempty"`
+	Env          []string              `json:"environment,omitempty"`
+	ConsolePath  string                `json:"console_path,omitempty"`
+	Config       *configs.Config       `json:"config"`
+	NetworkState *network.NetworkState `json:"network_state"`
 }
 
 // TODO(vishh): This is part of the libcontainer API and it does much more than just namespaces related work.
@@ -58,23 +60,18 @@ func Init(pipe *os.File, setupUserns bool) (err error) {
 	decoder := json.NewDecoder(pipe)
 
 	var container *configs.Config
-	if err := decoder.Decode(&container); err != nil {
-		return err
-	}
+	var networkState *network.NetworkState
 
 	var process *processArgs
 	if err := decoder.Decode(&process); err != nil {
 		return err
 	}
 
+	container = process.Config
+	networkState = process.NetworkState
+
 	uncleanRootfs, err := os.Getwd()
 	if err != nil {
-		return err
-	}
-
-	// We always read this as it is a way to sync with the parent as well
-	var networkState *network.NetworkState
-	if err := decoder.Decode(&networkState); err != nil {
 		return err
 	}
 
