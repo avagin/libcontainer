@@ -11,6 +11,82 @@ import (
 	"github.com/docker/libcontainer/configs"
 )
 
+func TestNoPid(t *testing.T) {
+	if testing.Short() {
+		return
+	}
+	root, err := newTestRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(root)
+
+	rootfs, err := newRootfs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer remove(rootfs)
+
+	config := newTemplateConfig(rootfs)
+
+	config.Namespaces.Remove(configs.NEWPID)
+
+	factory, err := libcontainer.New(root, libcontainer.Cgroupfs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	container, err := factory.Create("test", config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer container.Destroy()
+
+	buffers := newStdBuffers()
+	pconfig := libcontainer.Process{
+		Args:  []string{"sh", "-c", "setsid sleep 1000 &"},
+		Env:   standardEnvironment,
+		Stdout: buffers.Stdout,
+	}
+	err = container.Start(&pconfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pid, err := pconfig.Pid()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s, err := process.Wait()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !s.Success() {
+		t.Fatal(s.String())
+	}
+
+	processes, err := container.Processes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := range processes {
+		process, err := os.FindProcess(processes[i])
+		if err != nil {
+			continue
+		}
+		process.Kill()
+	}
+
+	pconfig.Wait()
+}
+
 func TestExecPS(t *testing.T) {
 	testExecPS(t, false)
 }
