@@ -32,3 +32,5 @@ local:
 validate:
 	hack/validate.sh
 
+nsinit-build:
+	make -C nsinit

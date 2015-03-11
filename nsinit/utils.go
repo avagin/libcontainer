@@ -29,7 +29,16 @@ func loadConfig(context *cli.Context) (*configs.Config, error) {
 }
 
 func loadFactory(context *cli.Context) (libcontainer.Factory, error) {
-	return libcontainer.New(context.GlobalString("root"), libcontainer.Cgroupfs)
+	factory := context.GlobalString("factory")
+
+	if factory == "libct" {
+		return libcontainer.NewLibctFactory(context.GlobalString("root"))
+	}
+	if factory == "linux" {
+		return libcontainer.New(context.GlobalString("root"), libcontainer.Cgroupfs)
+	}
+
+	return nil, fmt.Errorf("Unknown factory: %s", factory)
 }
 
 func getContainer(context *cli.Context) (libcontainer.Container, error) {
