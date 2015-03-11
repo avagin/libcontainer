@@ -182,7 +182,8 @@ func newTestRoot() (string, error) {
 	return dir, nil
 }
 
-func waitProcess(p *libcontainer.Process, t *testing.T) {
+
+func waitProcess(p *libcontainer.Process, t testing.TB) {
 	status, err := p.Wait()
 	ok(t, err)
 	if !status.Success() {
@@ -409,6 +410,10 @@ func testFreeze(t *testing.T, systemd bool) {
 	if testing.Short() {
 		return
 	}
+	if libct {
+		t.Skip()
+	}
+
 	root, err := newTestRoot()
 	ok(t, err)
 	defer os.RemoveAll(root)
@@ -480,6 +485,9 @@ func testCpuShares(t *testing.T, systemd bool) {
 	if testing.Short() {
 		return
 	}
+	if libct {
+		t.Skip("libct is't going to be clever than kernel")
+	}
 	rootfs, err := newRootfs()
 	ok(t, err)
 	defer remove(rootfs)
@@ -528,9 +536,7 @@ func TestContainerState(t *testing.T) {
 	})
 
 	container, err := factory.Create("test", config)
-	if err != nil {
-		t.Fatal(err)
-	}
+	ok(t, err)
 	defer container.Destroy()
 
 	stdinR, stdinW, err := os.Pipe()
@@ -629,6 +635,9 @@ func TestPassExtraFiles(t *testing.T) {
 func TestMountCmds(t *testing.T) {
 	if testing.Short() {
 		return
+	}
+	if libct {
+		t.Skip()
 	}
 	root, err := newTestRoot()
 	if err != nil {
