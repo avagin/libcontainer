@@ -68,13 +68,6 @@ func copyBusybox(dest string) error {
 }
 
 func newContainer(config *configs.Config) (libcontainer.Container, error) {
-	factory, err := libcontainer.New(".",
-		libcontainer.InitArgs(os.Args[0], "init", "--"),
-		libcontainer.Cgroupfs,
-	)
-	if err != nil {
-		return nil, err
-	}
 	return factory.Create("testCT", config)
 }
 

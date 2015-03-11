@@ -73,6 +73,9 @@ func TestExecInRlimit(t *testing.T) {
 	if testing.Short() {
 		return
 	}
+	if libct {
+		t.Skip()
+	}
 	rootfs, err := newRootfs()
 	if err != nil {
 		t.Fatal(err)
@@ -130,6 +133,9 @@ func TestExecInError(t *testing.T) {
 	if testing.Short() {
 		return
 	}
+	if libct {
+		t.Skip()
+	}
 	rootfs, err := newRootfs()
 	if err != nil {
 		t.Fatal(err)
@@ -180,6 +186,9 @@ func TestExecInError(t *testing.T) {
 func TestExecInTTY(t *testing.T) {
 	if testing.Short() {
 		return
+	}
+	if libct {
+		t.Skip()
 	}
 	rootfs, err := newRootfs()
 	if err != nil {
@@ -249,6 +258,9 @@ func TestExecInTTY(t *testing.T) {
 func TestExecInEnvironment(t *testing.T) {
 	if testing.Short() {
 		return
+	}
+	if libct {
+		t.Skip()
 	}
 	rootfs, err := newRootfs()
 	if err != nil {

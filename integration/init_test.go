@@ -1,10 +1,11 @@
 package integration
 
 import (
-	"log"
 	"os"
 	"runtime"
+	"testing"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/docker/libcontainer"
 	_ "github.com/docker/libcontainer/nsenter"
 )
@@ -24,4 +25,29 @@ func init() {
 	if err := factory.StartInitialization(3); err != nil {
 		log.Fatal(err)
 	}
+}
+
+var (
+	factory libcontainer.Factory
+	libct   bool = false
+)
+
+func TestMain(m *testing.M) {
+	var (
+		err error
+		ret int = 0
+	)
+
+	factory, err = libcontainer.New(".",
+		libcontainer.InitArgs(os.Args[0], "init", "--"),
+		libcontainer.Cgroupfs,
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	ret = m.Run()
+	ret |= libctRun(m)
+	os.Exit(ret)
 }

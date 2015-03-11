@@ -16,6 +16,9 @@ func TestExecPS(t *testing.T) {
 }
 
 func TestUsernsExecPS(t *testing.T) {
+	if libct {
+		t.Skip()
+	}
 	if _, err := os.Stat("/proc/self/ns/user"); os.IsNotExist(err) {
 		t.Skip("userns is unsupported")
 	}
@@ -156,6 +159,9 @@ func TestIPCBadPath(t *testing.T) {
 	if testing.Short() {
 		return
 	}
+	if libct {
+		t.Skip()
+	}
 
 	rootfs, err := newRootfs()
 	if err != nil {
@@ -175,6 +181,9 @@ func TestIPCBadPath(t *testing.T) {
 func TestRlimit(t *testing.T) {
 	if testing.Short() {
 		return
+	}
+	if libct {
+		t.Skip()
 	}
 
 	rootfs, err := newRootfs()
@@ -231,11 +240,6 @@ func TestEnter(t *testing.T) {
 	defer remove(rootfs)
 
 	config := newTemplateConfig(rootfs)
-
-	factory, err := libcontainer.New(root, libcontainer.Cgroupfs)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	container, err := factory.Create("test", config)
 	if err != nil {
