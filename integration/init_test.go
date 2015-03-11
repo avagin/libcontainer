@@ -38,6 +38,9 @@ func TestMain(m *testing.M) {
 		ret int = 0
 	)
 
+	log.SetOutput(os.Stderr)
+	log.SetLevel(log.InfoLevel)
+
 	factory, err = libcontainer.New(".",
 		libcontainer.InitArgs(os.Args[0], "init", "--"),
 		libcontainer.Cgroupfs,
