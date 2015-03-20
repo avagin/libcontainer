@@ -3,11 +3,14 @@
 package libcontainer
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	libct "github.com/avagin/libct/go"
+	log "github.com/Sirupsen/logrus"
 	"github.com/docker/libcontainer/configs"
 )
 
@@ -29,6 +32,7 @@ func NewLibctFactory(root string) (Factory, error) {
 }
 
 func (f *libctFactory) init() error {
+	initLog()
 	if f.session != nil {
 		return nil
 	}
@@ -88,4 +92,36 @@ func (f *libctFactory) StartInitialization(pipefd uintptr) (err error) {
 
 func (l *libctFactory) Type() string {
 	return "libct"
+}
+
+var libctLogInitialized bool = false
+func initLog() {
+	if libctLogInitialized {
+		return
+	}
+
+	rlog, wlog, err := os.Pipe()
+	if err != nil {
+		panic(err)
+	}
+	libct.LogInit(wlog, libct.LOG_INFO)
+	go func() {
+		sc := bufio.NewScanner(rlog)
+		for sc.Scan() {
+			l := sc.Text()
+			if strings.HasPrefix(l, "Error") {
+				log.Error(l)
+			} else if strings.HasPrefix(l, "Warn") {
+				log.Warn(l)
+			} else {
+				log.Info(l)
+			}
+		}
+		if err := sc.Err(); err != nil {
+			log.Warn(err)
+		}
+		rlog.Close()
+	}()
+
+	libctLogInitialized = true
 }
