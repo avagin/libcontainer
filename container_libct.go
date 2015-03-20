@@ -186,6 +186,10 @@ func (c *libctContainer) Start(process *Process) error {
 		return err
 	}
 
+	if err := c.setupRlimits(pd); err != nil {
+		return err
+	}
+
 	pd.Stdin = process.Stdin
 	pd.Stdout = process.Stdout
 	pd.Stderr = process.Stderr
@@ -389,6 +393,16 @@ func (c *libctContainer) setupCgroups() error {
 			if err := cg.apply(c); err != nil {
 				return newSystemError(err)
 			}
+		}
+	}
+
+	return nil
+}
+
+func (c *libctContainer) setupRlimits(pd *libct.ProcessDesc) error {
+	for _, rlimit := range c.config.Rlimits {
+		if err := pd.SetRlimit(rlimit.Type, rlimit.Soft, rlimit.Hard); err != nil {
+			return newSystemError(err)
 		}
 	}
 

@@ -73,9 +73,6 @@ func TestExecInRlimit(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	if libct {
-		t.Skip()
-	}
 	rootfs, err := newRootfs()
 	if err != nil {
 		t.Fatal(err)
