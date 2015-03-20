@@ -314,7 +314,7 @@ func (c *libctContainer) setupMountNamespace() error {
 		return newSystemError(err)
 	}
 
-	for _, m := range append(baseMounts, c.config.Mounts...) {
+	for _, m := range c.config.Mounts {
 		if err := c.libctMount(m, c.config.MountLabel); err != nil {
 			return newSystemError(err)
 		}
