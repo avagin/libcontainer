@@ -159,9 +159,6 @@ func TestIPCBadPath(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	if libct {
-		t.Skip()
-	}
 
 	rootfs, err := newRootfs()
 	if err != nil {

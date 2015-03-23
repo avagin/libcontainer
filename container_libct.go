@@ -210,6 +210,10 @@ func (c *libctContainer) Start(process *Process) error {
 		return newSystemError(err)
 	}
 
+	if err := c.joinExistingNamespaces(); err != nil {
+		return err
+	}
+
 	if err := c.setupMountNamespace(); err != nil {
 		return err
 	}
@@ -406,5 +410,20 @@ func (c *libctContainer) setupRlimits(pd *libct.ProcessDesc) error {
 		}
 	}
 
+	return nil
+}
+
+// joinExistingNamespaces gets all the namespace paths specified for the container and
+// does a setns on the namespace fd so that the current process joins the namespace.
+func (c *libctContainer) joinExistingNamespaces() error {
+	for _, ns := range c.config.Namespaces {
+		if ns.Path == "" {
+			continue;
+		}
+
+		if err := c.ct.SetNsPath(ns.Syscall(), ns.Path); err != nil {
+			return err;
+		}
+	}
 	return nil
 }
