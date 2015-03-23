@@ -37,3 +37,8 @@ binary: all
 
 nsinit-build:
 	make -C nsinit
+
+.FORCE:
+
+integration: .FORCE
+	make -C integration
