@@ -121,6 +121,11 @@ int libct_container_set_nsmask(ct_handler_t ct, unsigned long nsmask)
 	return ct->ops->set_nsmask(ct, nsmask);
 }
 
+int libct_container_set_nspath(ct_handler_t ct, int ns, char *path)
+{
+	return ct->ops->set_nspath(ct, ns, path);
+}
+
 int libct_container_set_option(ct_handler_t ct, int opt, void *args)
 {
 	return ct->ops->set_option(ct, opt, args);
@@ -177,6 +182,11 @@ int libct_process_desc_setuid(ct_process_desc_t p, unsigned int uid)
 int libct_process_desc_setgid(ct_process_desc_t p, unsigned int gid)
 {
 	return p->ops->setgid(p, gid);
+}
+
+int libct_process_desc_set_rlimit(ct_process_desc_t p, int resource, uint64_t soft, uint64_t hard)
+{
+	return p->ops->set_rlimit(p, resource, soft, hard);
 }
 
 int libct_process_desc_setgroups(ct_process_desc_t p, unsigned int size, unsigned int groups[])

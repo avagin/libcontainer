@@ -2,6 +2,7 @@
 #define __UAPI_LIBCT_H__
 
 #include <sys/types.h>
+#include <stdint.h>
 #include "libct-errors.h"
 
 /*
@@ -58,6 +59,7 @@ extern void libct_container_destroy(ct_handler_t ct);
  */
 
 extern int libct_container_set_nsmask(ct_handler_t ct, unsigned long ns_mask);
+extern int libct_container_set_nspath(ct_handler_t ct, int ns, char *path);
 
 enum ct_controller {
 	CTL_BLKIO,
@@ -184,6 +186,7 @@ extern void libct_process_desc_destroy(ct_process_desc_t p);
 extern int libct_process_desc_setuid(ct_process_desc_t p, unsigned int uid);
 extern int libct_process_desc_setgid(ct_process_desc_t p, unsigned int uid);
 extern int libct_process_desc_setgroupts(ct_process_desc_t p, unsigned int size, unsigned int groups[]);
+extern int libct_process_desc_set_rlimit(ct_process_desc_t p, int resource, uint64_t soft, uint64_t hard);
 extern int libct_process_desc_set_lsm_label(ct_process_desc_t p, char *label);
 
 #define CAPS_BSET	0x1

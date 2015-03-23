@@ -50,6 +50,75 @@ static void local_ct_uid_gid_free(struct container *ct)
 		xfree(map);
 }
 
+struct nspath_entry {
+	struct list_head node;
+	unsigned long ns;
+	char path[0];
+};
+
+static int local_set_nspath(ct_handler_t h, unsigned long ns, char *path)
+{
+	struct container *ct = cth2ct(h);
+	struct nspath_entry *e;
+	int len;
+
+	if (ct->state != CT_STOPPED)
+		return -LCTERR_BADCTSTATE;
+
+	/* Are all of these bits supported by kernel? */
+	if (ns & ~kernel_ns_mask)
+		return -LCTERR_NONS;
+
+	if (ns & ct->nsmask)
+		return -LCTERR_BADARG;
+
+	len = strlen(path);
+	e = xmalloc(sizeof(struct nspath_entry) + len + 1);
+	if (e == NULL)
+		return -1;
+
+	memcpy(e->path, path, len);
+	e->path[len] = 0;
+
+	list_add_tail(&e->node, &ct->setns_list);
+
+	return 0;
+}
+
+static int apply_nspath(struct container *ct)
+{
+	struct nspath_entry *e;
+
+	list_for_each_entry(e, &ct->setns_list, node) {
+		int fd;
+		fd = open(e->path, O_RDWR);
+		if (fd < 0) {
+			pr_perror("Unable to open %s", e->path);
+			return -1;
+		}
+
+		if (setns(fd, e->ns) < 0) {
+			pr_perror("Unable to switch namespace %d on %s",
+					e->ns, e->path);
+			close(fd);
+			return -1;
+		}
+		close(fd);
+	}
+
+	return 0;
+}
+
+static void local_free_nspath(struct container *ct)
+{
+	struct nspath_entry *e, *t;
+
+	list_for_each_entry_safe(e, t, &ct->setns_list, node) {
+		xfree(e);
+	}
+}
+
+
 static void local_ct_destroy(ct_handler_t h)
 {
 	struct container *ct = cth2ct(h);
@@ -62,6 +131,7 @@ static void local_ct_destroy(ct_handler_t h)
 	xfree(ct->domainname);
 	xfree(ct->cgroup_sub);
 	local_ct_uid_gid_free(ct);
+	local_free_nspath(ct);
 	xfree(ct);
 }
 
@@ -103,13 +173,20 @@ struct ct_clone_arg {
 static int re_mount_proc(struct container *ct)
 {
 	if (!ct->root_path) {
-		if (mount("none", "/proc", "none", MS_PRIVATE|MS_REC, NULL))
+		if (mount("none", "/proc", "none", MS_PRIVATE|MS_REC, NULL)) {
+			pr_perror("Unable to remount /proc");
 			return -1;
+		}
 
 		umount2("/proc", MNT_DETACH);
 	}
 
-	return mount("proc", "/proc", "proc", 0, NULL);
+	if (mount("proc", "/proc", "proc", 0, NULL)) {
+		pr_perror("Unable to mount /proc");
+		return -1;
+	}
+
+	return 0;
 }
 
 static int try_mount_proc(struct container *ct)
@@ -153,16 +230,21 @@ static int set_ct_root(struct container *ct)
 	 * gives us the ability to umount old tree.
 	 */
 
-	if (mount(ct->root_path, ct->root_path, NULL, MS_BIND | MS_REC, NULL) == -1)
+	if (mount(ct->root_path, ct->root_path, NULL, MS_BIND | MS_REC, NULL) == -1) {
+		pr_perror("Unable to mount root %s", ct->root_path);
 		return -1;
+	}
 
-	if (chdir(ct->root_path))
+	if (chdir(ct->root_path)) {
+		pr_perror("Unable to chroot into %s", ct->root_path);
 		return -1;
+	}
 
 	if (mkdtemp(put_root) == NULL)
 		return -1;
 
 	if (pivot_root(".", put_root)) {
+		pr_perror("Unable to change the root filesystem");
 		rmdir(put_root);
 		return -1;
 	}
@@ -170,7 +252,8 @@ static int set_ct_root(struct container *ct)
 	if (umount2(put_root, MNT_DETACH))
 		return -1;
 
-	rmdir(put_root);
+	if (rmdir(put_root))
+		pr_perror("Unable to remove %d", put_root);
 	return 0;
 }
 
@@ -187,6 +270,25 @@ static int uname_set(struct container *ct)
 	return ret;
 }
 
+static int apply_rlimit(struct process_desc *p)
+{
+	int i;
+
+	for (i = 0; i < RLIM_NLIMITS; i++) {
+		/* isn't set */
+		if (p->rlimit[i].rlim_cur == RLIM_INFINITY && p->rlimit[i].rlim_max == 0)
+			continue;
+
+		if (setrlimit(i, &p->rlimit[i])) {
+			pr_perror("Unable to set rlimit %d (%lld, %lld)",
+				i, p->rlimit[i].rlim_cur,  p->rlimit[i].rlim_max);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 static int apply_env(struct process_desc *p)
 {
 	int i;
@@ -196,6 +298,7 @@ static int apply_env(struct process_desc *p)
 
 	if (clearenv()) {
 		pr_perror("Unable to clear the environment");
+		return -1;
 	}
 
 	for (i = 0; i < p->envn; i++) {
@@ -227,16 +330,23 @@ static int ct_clone(void *arg)
 	if (ret)
 		goto err_um;
 
+	if (apply_nspath(ct))
+		goto err;
+
 	if (ct->nsmask & CLONE_NEWUSER) {
 		if (setuid(0) || setgid(0) || setgroups(0, NULL))
 			goto err;
 	}
 
-	if (prctl(PR_SET_PDEATHSIG, p->pdeathsig))
+	if (prctl(PR_SET_PDEATHSIG, p->pdeathsig)) {
+		pr_perror("Unable to set pdeath signal");
 		goto err;
+	}
 
-	if (!(ct->flags & CT_NOSETSID) && setsid() == -1)
+	if (!(ct->flags & CT_NOSETSID) && setsid() == -1) {
+		pr_perror("Unable to create a session");
 		goto err;
+	}
 
 	if (ct->tty_fd == LIBCT_CONSOLE_FD) {
 		ct->tty_fd = open("/dev/console", O_RDWR);
@@ -304,6 +414,9 @@ static int ct_clone(void *arg)
 
 	ret = apply_creds(p);
 	if (ret < 0)
+		goto err_um;
+
+	if (apply_rlimit(p))
 		goto err_um;
 
 	ret = apply_env(p);
@@ -409,9 +522,12 @@ static ct_process_t __local_spawn_cb(ct_handler_t h, ct_process_desc_t ph, int (
 	ca.p = p;
 	ca.is_exec = is_exec;
 	pid = clone(ct_clone, &ca.stack_ptr, ct->nsmask | SIGCHLD, &ca);
-	close(ca.wait_sock[1]);
-	if (pid < 0)
+	if (pid < 0) {
+		pr_perror("Unable to clone a child process");
+		close(ca.wait_sock[1]);
 		goto err_clone;
+	}
+	close(ca.wait_sock[1]);
 
 	ct->p.pid = pid;
 
@@ -528,6 +644,11 @@ static ct_process_t __local_enter_cb(ct_handler_t h, ct_process_desc_t ph, int (
 	wait_sock = wait_socks[0];
 
 	pid = fork();
+	if (pid < 0) {
+		pr_perror("Unable to fork a child process");
+		close(wait_socks[1]);
+		goto err;
+	}
 	if (pid == 0) {
 		struct ns_desc *ns;
 		wait_sock = wait_socks[1];
@@ -576,6 +697,9 @@ static ct_process_t __local_enter_cb(ct_handler_t h, ct_process_desc_t ph, int (
 		if (apply_creds(p))
 			exit(-1);
 
+		if (apply_rlimit(p))
+			exit(-1);
+
 		if (apply_env(p))
 			exit(-1);
 
@@ -590,8 +714,6 @@ static ct_process_t __local_enter_cb(ct_handler_t h, ct_process_desc_t ph, int (
 		exit(aux);
 	}
 	close(wait_socks[1]);
-	if (pid < 0)
-		goto err;
 
 	if (aux >= 0)
 		restore_ns(aux, &pid_ns);
@@ -789,6 +911,7 @@ static const struct container_ops local_ct_ops = {
 	.destroy		= local_ct_destroy,
 	.detach			= local_ct_destroy,
 	.set_nsmask		= local_set_nsmask,
+	.set_nspath		= local_set_nspath,
 	.add_controller		= local_add_controller,
 	.config_controller	= local_config_controller,
 	.fs_set_root		= local_fs_set_root,
@@ -820,6 +943,7 @@ ct_handler_t ct_create(char *name)
 		ct->state = CT_STOPPED;
 		ct->name = xstrdup(name);
 		ct->tty_fd = -1;
+		INIT_LIST_HEAD(&ct->setns_list);
 		INIT_LIST_HEAD(&ct->cgroups);
 		INIT_LIST_HEAD(&ct->cg_configs);
 		INIT_LIST_HEAD(&ct->ct_nets);
