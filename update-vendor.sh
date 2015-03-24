@@ -45,6 +45,6 @@ clone git github.com/coreos/go-systemd v2
 clone git github.com/godbus/dbus v2
 clone git github.com/Sirupsen/logrus v0.6.6
 clone git github.com/syndtr/gocapability e55e583369
-clone git github.com/avagin/libct 7b6da7e5ed31
+clone git github.com/avagin/libct 79e56a1369a4
 
 # intentionally not vendoring Docker itself...  that'd be a circle :)

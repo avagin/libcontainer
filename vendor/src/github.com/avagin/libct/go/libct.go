@@ -135,7 +135,7 @@ func (ct *Container) SetNsPath(ns int, path string) error {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
 
-	ret := C.libct_container_set_setns(ct.ct, C.int(ns), cpath)
+	ret := C.libct_container_set_nspath(ct.ct, C.int(ns), cpath)
 	if ret != 0 {
 		return LibctError{int(ret)}
 	}
@@ -318,6 +318,24 @@ const (
 	CT_FS_NODEV       = C.CT_FS_NODEV
 	CT_FS_STRICTATIME = C.CT_FS_STRICTATIME
 )
+
+func (ct *Container) AddUidMap(first, lower_first, count int) error {
+	ret := C.libct_userns_add_uid_map(ct.ct, C.uint(first), C.uint(lower_first), C.uint(count))
+	if ret != 0 {
+		return LibctError{int(ret)}
+	}
+
+	return nil
+}
+
+func (ct *Container) AddGidMap(first, lower_first, count int) error {
+	ret := C.libct_userns_add_gid_map(ct.ct, C.uint(first), C.uint(lower_first), C.uint(count))
+	if ret != 0 {
+		return LibctError{int(ret)}
+	}
+
+	return nil
+}
 
 func (ct *Container) AddBindMount(src string, dst string, flags int) error {
 	csrc := C.CString(src)
