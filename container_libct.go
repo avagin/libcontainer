@@ -195,6 +195,21 @@ func (c *libctContainer) Start(process *Process) error {
 	pd.Stderr = process.Stderr
 
 	if c.initProcess != nil {
+		if process.consolePath != "" {
+
+			f, err := os.OpenFile(process.consolePath, os.O_RDWR, 0)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			pd.Stdin = f
+			pd.Stdout = f
+			pd.Stderr = f
+			err = c.ct.SetConsoleFd(f)
+			if err != nil {
+				return newSystemError(err)
+			}
+		}
 		err = c.ct.EnterExecve(pd, process.Args[0], process.Args, nil)
 		if err != nil {
 			return newSystemError(err)
