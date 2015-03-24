@@ -16,9 +16,6 @@ func TestExecPS(t *testing.T) {
 }
 
 func TestUsernsExecPS(t *testing.T) {
-	if libct {
-		t.Skip()
-	}
 	if _, err := os.Stat("/proc/self/ns/user"); os.IsNotExist(err) {
 		t.Skip("userns is unsupported")
 	}
