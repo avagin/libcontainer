@@ -220,6 +220,10 @@ func (c *libctContainer) Start(process *Process) error {
 		return nil
 	}
 
+	if err := c.addUidGidMappings(); err != nil {
+		return newSystemError(err)
+	}
+
 	err = c.ct.SetNsMask(uint64(c.config.Namespaces.CloneFlags()))
 	if err != nil {
 		return newSystemError(err)
@@ -438,6 +442,20 @@ func (c *libctContainer) joinExistingNamespaces() error {
 
 		if err := c.ct.SetNsPath(ns.Syscall(), ns.Path); err != nil {
 			return err;
+		}
+	}
+	return nil
+}
+
+func (c *libctContainer) addUidGidMappings() error {
+	if c.config.UidMappings != nil {
+		for _, um := range c.config.UidMappings {
+			c.ct.AddUidMap(um.ContainerID, um.HostID, um.Size)
+		}
+	}
+	if c.config.GidMappings != nil {
+		for _, gm := range c.config.GidMappings {
+			c.ct.AddGidMap(gm.ContainerID, gm.HostID, gm.Size)
 		}
 	}
 	return nil
