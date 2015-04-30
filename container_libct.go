@@ -63,7 +63,18 @@ func (c *libctContainer) currentStatus() (Status, error) {
 
 		return 0, newSystemError(err)
 	}
-	return Running, nil
+
+	state, err := c.ct.State()
+	if err != nil {
+		return 0, newSystemError(err)
+	}
+	switch state {
+	case libct.CT_RUNNING:
+		return Running, nil
+	case libct.CT_PAUSED:
+		return Paused, nil
+	}
+	return 0, newSystemError(fmt.Errorf("Unknown state: %d", state))
 }
 
 func (c *libctContainer) Status() (Status, error) {
@@ -132,12 +143,12 @@ func (c *libctContainer) Processes() ([]int, error) {
 
 // Pause pauses all processes inside the container
 func (c *libctContainer) Pause() error {
-	panic("not implemented")
+	return c.ct.Pause()
 }
 
 // Resume unpause all processes inside the container
 func (c *libctContainer) Resume() error {
-	panic("not implemented")
+	return c.ct.Resume()
 }
 
 // getEnabledCapabilities returns the capabilities that should not be dropped by the container.

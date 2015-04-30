@@ -483,15 +483,15 @@ func TestSystemdFreeze(t *testing.T) {
 	if !systemd.UseSystemd() {
 		t.Skip("Systemd is unsupported")
 	}
+	if libct {
+		t.Skip()
+	}
 	testFreeze(t, true)
 }
 
 func testFreeze(t *testing.T, systemd bool) {
 	if testing.Short() {
 		return
-	}
-	if libct {
-		t.Skip()
 	}
 
 	root, err := newTestRoot()
