@@ -353,6 +353,8 @@ var libctFlagsMap map[int]int = map[int]int{
 	syscall.MS_NODEV:       libct.CT_FS_NODEV,
 	syscall.MS_STRICTATIME: libct.CT_FS_STRICTATIME,
 	syscall.MS_RDONLY:      libct.CT_FS_RDONLY,
+	syscall.MS_REC:		libct.CT_FS_REC,
+	syscall.MS_BIND:	libct.CT_FS_BIND,
 }
 
 func libctFlags(flags int) (int, error) {
@@ -382,12 +384,29 @@ func (c *libctContainer) libctMount(m *configs.Mount, mountLabel string) error {
 
 	switch m.Device {
 	case "bind":
-		if err := c.ct.AddBindMount(m.Source, m.Destination, flags); err != nil {
-			return newSystemError(err)
-		}
-		break
+		flags |= libct.CT_FS_BIND
+		// fallthrough
 	default:
-		if err := c.ct.AddMount(m.Source, m.Destination, flags, m.Device, m.Data); err != nil {
+		var pre, post []libct.Command
+		for _, c := range m.PremountCmds {
+			lc := libct.Command {
+					Dir: c.Dir,
+					Path: c.Path,
+					Args: append([]string{c.Path, }, c.Args...),
+					Env: c.Env,
+				}
+			pre = append(pre, lc)
+		}
+		for _, c := range m.PostmountCmds {
+			lc := libct.Command {
+					Dir: c.Dir,
+					Path: c.Path,
+					Args: append([]string{c.Path, }, c.Args...),
+					Env: c.Env,
+				}
+			post = append(post, lc)
+		}
+		if err := c.ct.AddMount(m.Source, m.Destination, flags, m.Device, m.Data, pre, post); err != nil {
 			return newSystemError(err)
 		}
 	}

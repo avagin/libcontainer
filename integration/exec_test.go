@@ -716,9 +716,6 @@ func TestMountCmds(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	if libct {
-		t.Skip()
-	}
 	root, err := newTestRoot()
 	if err != nil {
 		t.Fatal(err)
