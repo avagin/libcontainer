@@ -214,6 +214,12 @@ func (c *libctContainer) load() error {
 		}
 	}
 
+	for n, v := range c.config.SystemProperties {
+		if err := c.ct.SetSysctl(n, v); err != nil {
+			return newSystemError(err)
+		}
+	}
+
 	if err := c.addUidGidMappings(); err != nil {
 		return newSystemError(err)
 	}

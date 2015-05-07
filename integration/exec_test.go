@@ -483,9 +483,6 @@ func TestSystemdFreeze(t *testing.T) {
 	if !systemd.UseSystemd() {
 		t.Skip("Systemd is unsupported")
 	}
-	if libct {
-		t.Skip()
-	}
 	testFreeze(t, true)
 }
 

@@ -46,6 +46,7 @@ struct container_ops {
 	int (*pause)(ct_handler_t ct);
 	int (*resume)(ct_handler_t ct);
 	int (*set_slice)(ct_handler_t ct, char *slice);
+	int (*set_sysctl)(ct_handler_t ct, char *name, char *val);
 };
 
 struct ct_handler {
@@ -112,6 +113,8 @@ struct container {
 	struct list_head	gid_map;
 
 	struct process		p;
+
+	struct list_head	sysctls;
 };
 
 struct _uid_gid_map {
