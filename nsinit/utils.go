@@ -34,7 +34,7 @@ func loadFactory(context *cli.Context) (libcontainer.Factory, error) {
 	factory := context.GlobalString("factory")
 
 	if factory == "libct" {
-		return libcontainer.NewLibctFactory(context.GlobalString("root"))
+		return libcontainer.NewLibctFactory(context.GlobalString("root"), context.Bool("systemd"))
 	}
 	if factory == "linux" {
 		cgm := libcontainer.Cgroupfs
