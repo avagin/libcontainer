@@ -32,6 +32,8 @@ type libctContainer struct {
 	session *libct.Session
 
 	initProcess *Process
+
+	systemd bool
 }
 
 // ID returns the container's unique ID
@@ -205,6 +207,12 @@ func (p *libctProcessOps) signal(sig os.Signal) error {
 
 func (c *libctContainer) load() error {
 	var err error
+
+	if c.systemd {
+		if err := c.ct.SetOption(libct.LIBCT_OPT_SYSTEMD); err != nil {
+			return newSystemError(err)
+		}
+	}
 
 	if err := c.addUidGidMappings(); err != nil {
 		return newSystemError(err)

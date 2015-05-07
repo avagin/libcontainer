@@ -17,11 +17,13 @@ import (
 type libctFactory struct {
 	session *libct.Session
 	root    string
+	systemd bool
 }
 
-func NewLibctFactory(root string) (Factory, error) {
+func NewLibctFactory(root string, systemd bool) (Factory, error) {
 	f := libctFactory{
 		root: root,
+		systemd: systemd,
 	}
 
 	if err := f.init(); err != nil {
@@ -72,6 +74,7 @@ func (f *libctFactory) Create(id string, config *configs.Config) (Container, err
 		config:  config,
 		ct:      ct,
 		session: f.session,
+		systemd: f.systemd,
 	}
 
 	err = c.load()

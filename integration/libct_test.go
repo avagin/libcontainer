@@ -10,7 +10,7 @@ import (
 func libctRun(m *testing.M) int {
 	var err error
 
-	factory, err = libcontainer.NewLibctFactory(".")
+	factory, err = libcontainer.NewLibctFactory(".", false)
 	if err != nil {
 		panic(err)
 	}
