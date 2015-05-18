@@ -45,20 +45,17 @@ func TestCheckpoint(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	var stdout bytes.Buffer
 	pconfig := libcontainer.Process{
 		Args:  []string{"cat"},
 		Env:   standardEnvironment,
 		Stdin: stdinR,
+		Stdout: &stdout,
 	}
 
 	err = container.Start(&pconfig)
 	stdinR.Close()
 	defer stdinW.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = stdinW.WriteString("Hello!")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,8 +105,6 @@ func TestCheckpoint(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var stdout bytes.Buffer
-
 	restoreProcessConfig := &libcontainer.Process{
 		Stdin:  restoreStdinR,
 		Stdout: &stdout,
@@ -120,6 +115,11 @@ func TestCheckpoint(t *testing.T) {
 	})
 	restoreStdinR.Close()
 	defer restoreStdinW.Close()
+
+	_, err = restoreStdinW.WriteString("Hello!")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	state, err = container.Status()
 	if err != nil {
